@@ -9,3 +9,4 @@ class CodeCraftersOutputSuite extends munit.FunSuite:
     assertEquals(Token.LeftParen.render, "LEFT_PAREN ( null")
     assertEquals(Token.RightParen.render, "RIGHT_PAREN ) null")
   }
+

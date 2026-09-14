@@ -25,6 +25,13 @@ class ScannerSuite extends munit.FunSuite:
     assertEquals(actual, expected)
   }
 
+  test("a multi-token source yields one token per character, in source order") {
+    val source = Source("())")
+    val expected = List(Token.LeftParen, Token.RightParen, Token.RightParen, Token.EndOfFile)
+    val actual = scan(source)
+    assertEquals(actual, expected)
+  }
+
 
 
 

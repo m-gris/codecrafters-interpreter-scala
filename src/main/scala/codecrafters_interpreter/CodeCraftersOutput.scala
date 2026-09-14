@@ -8,5 +8,3 @@ private val NoLiteral = "null"
 extension (t: Token)
   def render: String = s"${t.name} ${t.lexeme} $NoLiteral"
 
-
-
