@@ -24,3 +24,8 @@ class ScannerSuite extends munit.FunSuite:
     val actual = scan(source)
     assertEquals(actual, expected)
   }
+
+
+
+
+
