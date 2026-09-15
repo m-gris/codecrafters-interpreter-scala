@@ -1,9 +1,17 @@
 package codecrafters_interpreter
 
-enum Token(val lexeme: String, val name: String):
-  case LeftParen extends Token("(", "LEFT_PAREN")
-  case RightParen extends Token(")", "RIGHT_PAREN")
-  case EndOfFile extends Token("", "EOF")
+enum Token(val lexeme: String):
+  case LeftParen extends Token("(")
+  case LeftBrace extends Token("{")
+  case RightParen extends Token(")")
+  case RightBrace extends Token("}")
+  case EndOfFile extends Token("")
+  case Comma extends Token(",")
+  case Dot extends Token(".")
+  case Minus extends Token("-")
+  case Plus extends Token("+")
+  case SemiColon extends Token(";")
+  case Star extends Token("*")
 
 opaque type Source = String
 object Source:
