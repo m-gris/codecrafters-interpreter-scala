@@ -5,6 +5,20 @@ package codecrafters_interpreter
 // CodeCrafters froze jlox's output as the spec, so every implementation must emit it.
 private val NoLiteral = "null"
 
+private def toSnakeCase(t: Token): String = t match {
+  case Token.EndOfFile => "EOF"
+  case Token.SemiColon => "SEMICOLON"
+  case _  => t.toString.flatMap(
+    c => if c.isUpper then s"_$c" else c.toUpper.toString
+  ).stripPrefix("_")
+
+  }
+
+
+private def name(t: Token): String = t match {
+  case t => toSnakeCase(t)
+}
+
 extension (t: Token)
-  def render: String = s"${t.name} ${t.lexeme} $NoLiteral"
+  def render: String = s"${name(t)} ${t.lexeme} $NoLiteral"
 
