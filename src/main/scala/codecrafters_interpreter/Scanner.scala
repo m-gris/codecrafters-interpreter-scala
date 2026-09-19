@@ -17,15 +17,24 @@ opaque type Source = String
 object Source:
   def apply(s: String): Source = s
 
-private val byLexeme: Map[String, Token] = Token.values.collect {
-  case t if t.lexeme.nonEmpty => t.lexeme -> t
+private val byLexeme: Map[Char, Token] = Token.values.collect {
+  case t if t.lexeme.nonEmpty => t.lexeme.charAt(0) -> t
 }.toMap
 
-def scan(source: Source): List[Token] =
+case class ScanError(unexpected: Char)
+case class ScanResult(errors: List[ScanError], tokens: List[Token])
 
-  def helper(src: List[Char]): List[Token] = src match
-    case Nil         => List(Token.EndOfFile)
-    case h :: rest   => byLexeme(h.toString) :: helper(rest)
+def scan(source: Source): ScanResult =
+
+  def helper(src: List[Char]): ScanResult = src match
+    case Nil         => ScanResult(errors = Nil, tokens = List(Token.EndOfFile) )
+    case h :: rest   =>
+      val headToken: Option[Token] = byLexeme.get(h)
+      val tailTokens: ScanResult = helper(rest)
+      headToken match {
+        case Some(t) => ScanResult(tailTokens.errors, t :: tailTokens.tokens)
+        case None => ScanResult( ScanError(h) :: tailTokens.errors, tailTokens.tokens)
+      }
 
   helper(source.toList)
 
