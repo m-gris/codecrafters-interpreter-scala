@@ -22,3 +22,7 @@ private def name(t: Token): String = t match {
 extension (t: Token)
   def render: String = s"${name(t)} ${t.lexeme} $NoLiteral"
 
+extension (s: ScanError)
+  def render: String = s"[line 1] Error: Unexpected character: ${s.unexpected}"
+
+
