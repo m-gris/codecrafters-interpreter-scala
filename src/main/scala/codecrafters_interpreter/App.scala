@@ -12,6 +12,9 @@ object Main {
     val fileContent: String = Files.readString(Path.of(filename))
     val rez: ScanResult = scan(Source(fileContent))
     rez.tokens.map(_.render).foreach(println)
+    rez.errors.map(_.render).foreach(Console.err.println)
+    if rez.errors.isEmpty then sys.exit(0) else sys.exit(65)
+
   }
 
 }
