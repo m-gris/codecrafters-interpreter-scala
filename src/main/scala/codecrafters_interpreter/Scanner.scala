@@ -12,29 +12,42 @@ enum Token(val lexeme: String):
   case Plus extends Token("+")
   case SemiColon extends Token(";")
   case Star extends Token("*")
+  case Equal extends Token("=")
+  case EqualEqual extends Token("==")
 
 opaque type Source = String
 object Source:
   def apply(s: String): Source = s
 
-private val byLexeme: Map[Char, Token] = Token.values.collect {
-  case t if t.lexeme.nonEmpty => t.lexeme.charAt(0) -> t
-}.toMap
+private val byLexeme: Map[String, Token] = Token.values.collect {
+  case t if t.lexeme.nonEmpty => t.lexeme -> t }.toMap
 
-case class ScanError(unexpected: Char)
+case class ScanError(unexpected: String)
 case class ScanResult(errors: List[ScanError], tokens: List[Token])
 
 def scan(source: Source): ScanResult =
 
   def helper(src: List[Char]): ScanResult = src match
-    case Nil         => ScanResult(errors = Nil, tokens = List(Token.EndOfFile) )
-    case h :: rest   =>
-      val headToken: Option[Token] = byLexeme.get(h)
-      val tailTokens: ScanResult = helper(rest)
-      headToken match {
-        case Some(t) => ScanResult(tailTokens.errors, t :: tailTokens.tokens)
-        case None => ScanResult( ScanError(h) :: tailTokens.errors, tailTokens.tokens)
-      }
+
+    case Nil              => ScanResult(errors = Nil, tokens = List(Token.EndOfFile) )
+
+    case x :: Nil         => byLexeme.get(x.toString) match
+      case None => ScanResult(errors=List(ScanError(x.toString)), tokens=List(Token.EndOfFile))
+      case Some(t) => ScanResult(errors=Nil, tokens=List(t, Token.EndOfFile))
+
+    case x :: y :: tail => (byLexeme.get(x.toString), byLexeme.get(s"$x$y")) match
+
+      case (None, None)  =>
+        val rest: ScanResult = helper(y :: tail)
+        rest.copy(errors= ScanError(s"$x") :: rest.errors)
+
+      case (_ , Some(xyT)) =>
+        val rest: ScanResult = helper(tail)
+        rest.copy(tokens= xyT :: rest.tokens)
+
+      case (Some(t), None) =>
+        val rest: ScanResult = helper(y :: tail)
+        rest.copy(tokens= t :: rest.tokens)
 
   helper(source.toList)
 
