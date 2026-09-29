@@ -43,6 +43,10 @@ for slug in "$@"; do
   cases="$cases{\"slug\":\"$slug\",\"tester_log_prefix\":\"$slug\",\"title\":\"$title\"}"
 done
 
+# Build once here, not in your_program.sh: the tester calls that script for every
+# test case, and repackaging each time (~3s, more under load) hits its 10s timeout.
+"$REPO/.codecrafters/compile.sh"
+
 CODECRAFTERS_REPOSITORY_DIR="$REPO" \
 CODECRAFTERS_SUBMISSION_DIR="$REPO" \
 CODECRAFTERS_TEST_CASES_JSON="[$cases]" \

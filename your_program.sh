@@ -8,16 +8,9 @@
 
 set -e # Exit early if any commands fail
 
-# Copied from .codecrafters/compile.sh
-#
-# - Edit this to change how your program compiles locally
-# - Edit .codecrafters/compile.sh to change how your program compiles remotely
-(
-  cd "$(dirname "$0")" # Ensure compile steps are run within the repository directory
-  scala-cli package src/main/scala/ \
-    -q --power --assembly --force --scala-version=3.8.3 \
-    -o /tmp/codecrafters-build-interpreter-scala
-)
+# No compile step here: ./oracle.sh builds once before running the tester.
+# Running this script directly uses the last build — after a code change, run
+# .codecrafters/compile.sh first.
 
 # Copied from .codecrafters/run.sh
 #
