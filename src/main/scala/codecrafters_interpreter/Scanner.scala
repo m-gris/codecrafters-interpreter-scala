@@ -30,6 +30,10 @@ enum Token(val lexeme: Lexeme):
   case EqualEqual extends Token(Lexeme("=="))
   case Bang extends Token(Lexeme("!"))
   case BangEqual extends Token(Lexeme("!="))
+  case Less extends Token(Lexeme("<"))
+  case LessEqual extends Token(Lexeme("<="))
+  case Greater extends Token(Lexeme(">"))
+  case GreaterEqual extends Token(Lexeme(">="))
 
 opaque type Source = String
 object Source:
