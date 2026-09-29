@@ -71,6 +71,17 @@ class ScannerSuite extends munit.FunSuite:
     assertEquals(actual, expected, clue(source, expected, actual))
   }
 
+  test("a lexeme of one or two characters compiles") {
+    assertNoDiff(compileErrors("""Lexeme("=")"""), "")
+    assertNoDiff(compileErrors("""Lexeme("==")"""), "")
+  }
+
+  test("a lexeme of three characters does not compile") {
+    val errors = compileErrors("""Lexeme("...")""")
+    // Assert the length check's own message, so an unrelated error can't pass for it.
+    assert(errors.contains("""Cannot prove that scala.compiletime.ops.string.Length[("..." : String)] <= (2 : Int)"""), errors)
+  }
+
 
 
 
