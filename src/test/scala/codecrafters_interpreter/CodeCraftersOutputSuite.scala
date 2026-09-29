@@ -15,7 +15,16 @@ class CodeCraftersOutputSuite extends munit.FunSuite:
     )
   }
 
-
   test("render scan error") {
-    assertEquals(ScanError('@').render, """[line 1] Error: Unexpected character: @""")
+    assertEquals(
+      ScanError('@').render,
+      """[line 1] Error: Unexpected character: @"""
+    )
+  }
+
+  test("rendering many tokens does not overflow the stack") {
+    // Plain recursion overflows the JVM stack at ~10,000 tokens.
+    val lines = List.fill(100_000)(Token.LeftParen).render
+    assertEquals(lines.size, 100_001)
+    assertEquals(lines.last, "EOF  null")
   }

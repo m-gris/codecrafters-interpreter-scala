@@ -3,7 +3,11 @@ package codecrafters_interpreter
 class ScannerSuite extends munit.FunSuite:
 
   // Printed by munit in place of "values are not the same", so a failure shows its input.
-  private def clue(source: Source, expected: ScanResult, actual: ScanResult): String =
+  private def clue(
+      source: Source,
+      expected: ScanResult,
+      actual: ScanResult
+  ): String =
     s"""
        |  source   = "$source"
        |  expected = $expected
@@ -25,11 +29,11 @@ class ScannerSuite extends munit.FunSuite:
 
   test("a multi-token source yields its tokens in source order") {
     val source = Source("())")
-    val expected = ScanResult(Nil, List(Token.LeftParen, Token.RightParen, Token.RightParen))
+    val expected =
+      ScanResult(Nil, List(Token.LeftParen, Token.RightParen, Token.RightParen))
     val actual = scan(source)
     assertEquals(actual, expected, clue(source, expected, actual))
   }
-
 
   test("an unrecognised character is reported and does not stop scanning") {
     val source = Source("@")
@@ -53,20 +57,21 @@ class ScannerSuite extends munit.FunSuite:
 
   test("EqualEqual is recognized") {
     val source = Source("==")
-    val expected = ScanResult( errors=Nil, tokens=List(Token.EqualEqual) )
+    val expected = ScanResult(errors = Nil, tokens = List(Token.EqualEqual))
     val actual = scan(source)
     assertEquals(actual, expected, clue(source, expected, actual))
   }
   test("Equal is recognized") {
     val source = Source("=")
-    val expected = ScanResult( errors=Nil, tokens=List(Token.Equal))
+    val expected = ScanResult(errors = Nil, tokens = List(Token.Equal))
     val actual = scan(source)
     assertEquals(actual, expected, clue(source, expected, actual))
   }
 
   test("the longest lexeme wins: === is EqualEqual then Equal") {
     val source = Source("===")
-    val expected = ScanResult( errors=Nil, tokens=List(Token.EqualEqual, Token.Equal))
+    val expected =
+      ScanResult(errors = Nil, tokens = List(Token.EqualEqual, Token.Equal))
     val actual = scan(source)
     assertEquals(actual, expected, clue(source, expected, actual))
   }
@@ -79,9 +84,16 @@ class ScannerSuite extends munit.FunSuite:
   test("a lexeme of three characters does not compile") {
     val errors = compileErrors("""Lexeme("...")""")
     // Assert the length check's own message, so an unrelated error can't pass for it.
-    assert(errors.contains("""Cannot prove that scala.compiletime.ops.string.Length[("..." : String)] <= (2 : Int)"""), errors)
+    assert(
+      errors.contains(
+        """Cannot prove that scala.compiletime.ops.string.Length[("..." : String)] <= (2 : Int)"""
+      ),
+      errors
+    )
   }
 
-
-
-
+  test("a long source does not overflow the stack") {
+    // Plain recursion overflows the JVM stack at ~10,000 characters.
+    val tokens = scan(Source("(" * 100_000)).tokens
+    assertEquals(tokens.size, 100_000)
+  }
