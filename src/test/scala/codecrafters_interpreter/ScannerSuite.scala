@@ -76,6 +76,13 @@ class ScannerSuite extends munit.FunSuite:
     assertEquals(actual, expected, clue(source, expected, actual))
   }
 
+  test("the longest lexeme wins: !!=== is Bang, BangEqual, EqualEqual") {
+    val source = Source("!!===")
+    val expected = ScanResult(errors = Nil, tokens = List(Token.Bang, Token.BangEqual, Token.EqualEqual))
+    val actual = scan(source)
+    assertEquals(actual, expected, clue(source, expected, actual))
+  }
+
   test("a lexeme of one or two characters compiles") {
     assertNoDiff(compileErrors("""Lexeme("=")"""), "")
     assertNoDiff(compileErrors("""Lexeme("==")"""), "")

@@ -28,6 +28,8 @@ enum Token(val lexeme: Lexeme):
   case Star extends Token(Lexeme("*"))
   case Equal extends Token(Lexeme("="))
   case EqualEqual extends Token(Lexeme("=="))
+  case Bang extends Token(Lexeme("!"))
+  case BangEqual extends Token(Lexeme("!="))
 
 opaque type Source = String
 object Source:
