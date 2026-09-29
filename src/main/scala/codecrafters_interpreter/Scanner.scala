@@ -22,7 +22,7 @@ object Source:
 private val byLexeme: Map[String, Token] = Token.values.collect {
   case t if t.lexeme.nonEmpty => t.lexeme -> t }.toMap
 
-case class ScanError(unexpected: String)
+case class ScanError(unexpected: Char)
 case class ScanResult(errors: List[ScanError], tokens: List[Token])
 
 def scan(source: Source): ScanResult =
@@ -32,14 +32,14 @@ def scan(source: Source): ScanResult =
     case Nil              => ScanResult(errors = Nil, tokens = List(Token.EndOfFile) )
 
     case x :: Nil         => byLexeme.get(x.toString) match
-      case None => ScanResult(errors=List(ScanError(x.toString)), tokens=List(Token.EndOfFile))
+      case None => ScanResult(errors=List(ScanError(x)), tokens=List(Token.EndOfFile))
       case Some(t) => ScanResult(errors=Nil, tokens=List(t, Token.EndOfFile))
 
-    case x :: y :: tail => (byLexeme.get(x.toString), byLexeme.get(s"$x$y")) match
+    case x :: y :: tail => (byLexeme.get(x.toString), byLexeme.get(List(x,y).mkString)) match
 
       case (None, None)  =>
         val rest: ScanResult = helper(y :: tail)
-        rest.copy(errors= ScanError(s"$x") :: rest.errors)
+        rest.copy(errors= ScanError(x) :: rest.errors)
 
       case (_ , Some(xyT)) =>
         val rest: ScanResult = helper(tail)

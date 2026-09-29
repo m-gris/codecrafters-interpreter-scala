@@ -1,5 +1,3 @@
-//> using dep org.scalameta::munit::1.3.6
-
 package codecrafters_interpreter
 
 class CodeCraftersOutputSuite extends munit.FunSuite:
@@ -12,5 +10,5 @@ class CodeCraftersOutputSuite extends munit.FunSuite:
 
 
   test("render scan error") {
-    assertEquals(ScanError("@").render, """[line 1] Error: Unexpected character: @""")
+    assertEquals(ScanError('@').render, """[line 1] Error: Unexpected character: @""")
   }
