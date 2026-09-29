@@ -11,7 +11,6 @@ private def toSnakeCase(s: String): String = s.flatMap{ c =>
 
 
 private def name(t: Token): String = t match {
-  case Token.EndOfFile => "EOF"
   case Token.SemiColon => "SEMICOLON"
   case t => toSnakeCase(t.toString)
 }
@@ -21,5 +20,11 @@ extension (t: Token)
 
 extension (s: ScanError)
   def render: String = s"[line 1] Error: Unexpected character: ${s.unexpected}"
+
+extension (ts: List[Token])
+  def render: List[String] = ts match {
+    case Nil =>  List("EOF  null")
+    case t :: rest =>   s"${name(t)} ${t.lexeme} $NoLiteral" :: rest.render
+}
 
 

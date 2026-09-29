@@ -5,7 +5,6 @@ enum Token(val lexeme: String):
   case LeftBrace extends Token("{")
   case RightParen extends Token(")")
   case RightBrace extends Token("}")
-  case EndOfFile extends Token("")
   case Comma extends Token(",")
   case Dot extends Token(".")
   case Minus extends Token("-")
@@ -19,8 +18,7 @@ opaque type Source = String
 object Source:
   def apply(s: String): Source = s
 
-private val byLexeme: Map[String, Token] = Token.values.collect {
-  case t if t.lexeme.nonEmpty => t.lexeme -> t }.toMap
+private val byLexeme: Map[String, Token] = Token.values.map(t => t.lexeme -> t).toMap
 
 case class ScanError(unexpected: Char)
 case class ScanResult(errors: List[ScanError], tokens: List[Token])
@@ -29,11 +27,11 @@ def scan(source: Source): ScanResult =
 
   def helper(src: List[Char]): ScanResult = src match
 
-    case Nil              => ScanResult(errors = Nil, tokens = List(Token.EndOfFile) )
+    case Nil              => ScanResult(errors = Nil, tokens = List() )
 
     case x :: Nil         => byLexeme.get(x.toString) match
-      case None => ScanResult(errors=List(ScanError(x)), tokens=List(Token.EndOfFile))
-      case Some(t) => ScanResult(errors=Nil, tokens=List(t, Token.EndOfFile))
+      case None => ScanResult(errors=List(ScanError(x)), tokens=List())
+      case Some(t) => ScanResult(errors=Nil, tokens=List(t))
 
     case x :: y :: tail => (byLexeme.get(x.toString), byLexeme.get(List(x,y).mkString)) match
 

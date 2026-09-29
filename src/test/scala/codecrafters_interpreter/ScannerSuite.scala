@@ -9,37 +9,23 @@ class ScannerSuite extends munit.FunSuite:
        |  expected = $expected
        |  obtained = $actual""".stripMargin
 
-  test("empty source yields a single EndOfFile token") {
+  test("empty source yields an empty list") {
     val emptySource = Source("")
-    val expected = ScanResult(Nil, List(Token.EndOfFile))
+    val expected = ScanResult(Nil, List())
     val actual = scan(emptySource)
     assertEquals(actual, expected, clue(emptySource, expected, actual))
   }
 
-  test("LeftParen does include EOF") {
-    val source = Source("(")
-    val expected = ScanResult(Nil, List(Token.LeftParen, Token.EndOfFile))
-    val actual = scan(source)
-    assertEquals(actual, expected, clue(source, expected, actual))
-  }
-
-  test("RightParen does include EOF") {
-    val source = Source(")")
-    val expected = ScanResult(Nil, List(Token.RightParen, Token.EndOfFile))
-    val actual = scan(source)
-    assertEquals(actual, expected, clue(source, expected, actual))
-  }
-
   test("two single-char tokens side by side are both kept") {
     val source = Source("()")
-    val expected = ScanResult(Nil, List(Token.LeftParen, Token.RightParen, Token.EndOfFile))
+    val expected = ScanResult(Nil, List(Token.LeftParen, Token.RightParen))
     val actual = scan(source)
     assertEquals(actual, expected, clue(source, expected, actual))
   }
 
   test("a multi-token source yields its tokens in source order") {
     val source = Source("())")
-    val expected = ScanResult(Nil, List(Token.LeftParen, Token.RightParen, Token.RightParen, Token.EndOfFile))
+    val expected = ScanResult(Nil, List(Token.LeftParen, Token.RightParen, Token.RightParen))
     val actual = scan(source)
     assertEquals(actual, expected, clue(source, expected, actual))
   }
@@ -49,7 +35,7 @@ class ScannerSuite extends munit.FunSuite:
     val source = Source("@")
     val expected = ScanResult(
       errors = List(ScanError('@')),
-      tokens = List(Token.EndOfFile)
+      tokens = List()
     )
     val actual = scan(source)
     assertEquals(actual, expected, clue(source, expected, actual))
@@ -59,7 +45,7 @@ class ScannerSuite extends munit.FunSuite:
     val source = Source("@(")
     val expected = ScanResult(
       errors = List(ScanError('@')),
-      tokens = List(Token.LeftParen,Token.EndOfFile)
+      tokens = List(Token.LeftParen)
     )
     val actual = scan(source)
     assertEquals(actual, expected, clue(source, expected, actual))
@@ -67,20 +53,20 @@ class ScannerSuite extends munit.FunSuite:
 
   test("EqualEqual is recognized") {
     val source = Source("==")
-    val expected = ScanResult( errors=Nil, tokens=List(Token.EqualEqual, Token.EndOfFile))
+    val expected = ScanResult( errors=Nil, tokens=List(Token.EqualEqual) )
     val actual = scan(source)
     assertEquals(actual, expected, clue(source, expected, actual))
   }
   test("Equal is recognized") {
     val source = Source("=")
-    val expected = ScanResult( errors=Nil, tokens=List(Token.Equal, Token.EndOfFile))
+    val expected = ScanResult( errors=Nil, tokens=List(Token.Equal))
     val actual = scan(source)
     assertEquals(actual, expected, clue(source, expected, actual))
   }
 
   test("the longest lexeme wins: === is EqualEqual then Equal") {
     val source = Source("===")
-    val expected = ScanResult( errors=Nil, tokens=List(Token.EqualEqual, Token.Equal, Token.EndOfFile))
+    val expected = ScanResult( errors=Nil, tokens=List(Token.EqualEqual, Token.Equal))
     val actual = scan(source)
     assertEquals(actual, expected, clue(source, expected, actual))
   }
