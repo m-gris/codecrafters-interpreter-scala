@@ -3,6 +3,17 @@ package codecrafters_interpreter
 import scala.compiletime.ops.string.Length
 import scala.compiletime.ops.int.<=
 
+
+sealed trait InputElement
+
+sealed trait Recognized extends InputElement
+sealed trait Significant extends Recognized
+sealed trait InSignificant extends Recognized
+
+case class Comment(text: String) extends InSignificant
+
+case class UnRecognized(char: Char) extends InputElement
+
 opaque type Lexeme = String
 
 object Lexeme:
@@ -15,7 +26,7 @@ object Lexeme:
   // same type. No proof, no compile: Lexeme("...") is rejected.
   (using (Length[S] <= 2) =:= true): Lexeme = s
 
-enum Token(val lexeme: Lexeme):
+enum Token(val lexeme: Lexeme) extends Significant:
   case LeftParen extends Token(Lexeme("("))
   case LeftBrace extends Token(Lexeme("{"))
   case RightParen extends Token(Lexeme(")"))
@@ -42,35 +53,43 @@ object Source:
 private val byLexeme: Map[Lexeme, Token] =
   Token.values.map(t => t.lexeme -> t).toMap
 
-case class ScanError(unexpected: Char)
+// will deserve an educational comment about scala 2 scopes for types & terms etc...
+type ScanError = UnRecognized
+val ScanError = UnRecognized
 
 case class ScanResult(errors: List[ScanError] = Nil, tokens: List[Token] = Nil):
-  def add(e: ScanError): ScanResult = this.copy(errors= e :: this.errors)
-  def add(t: Token): ScanResult = this.copy(tokens = t :: this.tokens)
-  def reverse: ScanResult = ScanResult(this.errors.reverse, this.tokens.reverse)
+  def add(e: InputElement): ScanResult =  e match {
+    case t: Token     => this.copy(tokens= t :: this.tokens)
+    case e: ScanError => this.copy(errors=e :: this.errors)
+    case _ => this
+  }
 
-def scan(source: Source): ScanResult =
+def scan(source: Source): List[InputElement] =
 
   @scala.annotation.tailrec
-  def loop(src: List[Char], acc: ScanResult): ScanResult = src match
+  def loop(src: List[Char], acc: List[InputElement]): List[InputElement] = src match
 
     case Nil => acc
 
     case x :: Nil =>
       byLexeme.get(x.toString) match
-        case None    => acc.add(ScanError(x))
-        case Some(t) => acc.add(t)
+        case None    => ScanError(x) :: acc
+        case Some(t) => t :: acc
 
     case x :: y :: tail =>
 
       (byLexeme.get(x.toString), byLexeme.get(List(x, y).mkString)) match
 
-        case (None, None) => loop(y :: tail, acc.add(ScanError(x)) )
+        case (None, None) => loop( y :: tail, ScanError(x) :: acc )
 
-        case (_, Some(xyT)) => loop(tail, acc.add(xyT))
+        case (_, Some(xyT)) => loop(tail, xyT :: acc)
 
-        case (Some(t), None) => loop(y :: tail, acc.add(t))
+        case (Some(t), None) => loop(y :: tail, t :: acc)
 
-  val rez = loop(source.toList, ScanResult(Nil, Nil))
+  val rez = loop(source.toList, Nil)
 
   rez.reverse
+
+def partition(elements: List[InputElement]): ScanResult =
+  val rez = elements.foldLeft(ScanResult(Nil, Nil)) { (acc, e) => acc.add(e) } 
+  rez.copy(rez.errors.reverse, rez.tokens.reverse)

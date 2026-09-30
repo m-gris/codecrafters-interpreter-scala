@@ -16,14 +16,14 @@ class ScannerSuite extends munit.FunSuite:
   test("empty source yields an empty list") {
     val emptySource = Source("")
     val expected = ScanResult(Nil, List())
-    val actual = scan(emptySource)
+    val actual = partition(scan(emptySource))
     assertEquals(actual, expected, clue(emptySource, expected, actual))
   }
 
   test("two single-char tokens side by side are both kept") {
     val source = Source("()")
     val expected = ScanResult(Nil, List(Token.LeftParen, Token.RightParen))
-    val actual = scan(source)
+    val actual = partition(scan(source))
     assertEquals(actual, expected, clue(source, expected, actual))
   }
 
@@ -31,7 +31,7 @@ class ScannerSuite extends munit.FunSuite:
     val source = Source("())")
     val expected =
       ScanResult(Nil, List(Token.LeftParen, Token.RightParen, Token.RightParen))
-    val actual = scan(source)
+    val actual = partition(scan(source))
     assertEquals(actual, expected, clue(source, expected, actual))
   }
 
@@ -41,7 +41,7 @@ class ScannerSuite extends munit.FunSuite:
       errors = List(ScanError('@')),
       tokens = List()
     )
-    val actual = scan(source)
+    val actual = partition(scan(source))
     assertEquals(actual, expected, clue(source, expected, actual))
   }
 
@@ -51,20 +51,20 @@ class ScannerSuite extends munit.FunSuite:
       errors = List(ScanError('@')),
       tokens = List(Token.LeftParen)
     )
-    val actual = scan(source)
+    val actual = partition(scan(source))
     assertEquals(actual, expected, clue(source, expected, actual))
   }
 
   test("EqualEqual is recognized") {
     val source = Source("==")
     val expected = ScanResult(errors = Nil, tokens = List(Token.EqualEqual))
-    val actual = scan(source)
+    val actual = partition(scan(source))
     assertEquals(actual, expected, clue(source, expected, actual))
   }
   test("Equal is recognized") {
     val source = Source("=")
     val expected = ScanResult(errors = Nil, tokens = List(Token.Equal))
-    val actual = scan(source)
+    val actual = partition(scan(source))
     assertEquals(actual, expected, clue(source, expected, actual))
   }
 
@@ -72,21 +72,21 @@ class ScannerSuite extends munit.FunSuite:
     val source = Source("===")
     val expected =
       ScanResult(errors = Nil, tokens = List(Token.EqualEqual, Token.Equal))
-    val actual = scan(source)
+    val actual = partition(scan(source))
     assertEquals(actual, expected, clue(source, expected, actual))
   }
 
   test("the longest lexeme wins: !!=== is Bang, BangEqual, EqualEqual") {
     val source = Source("!!===")
     val expected = ScanResult(errors = Nil, tokens = List(Token.Bang, Token.BangEqual, Token.EqualEqual))
-    val actual = scan(source)
+    val actual = partition(scan(source))
     assertEquals(actual, expected, clue(source, expected, actual))
   }
 
   test("the longest lexeme wins: <<=>>= is Less, LessEqual, Greater, GreaterEqual") {
     val source = Source("<<=>>=")
     val expected = ScanResult(errors = Nil, tokens = List(Token.Less, Token.LessEqual, Token.Greater, Token.GreaterEqual))
-    val actual = scan(source)
+    val actual = partition(scan(source))
     assertEquals(actual, expected, clue(source, expected, actual))
   }
 
@@ -108,6 +108,6 @@ class ScannerSuite extends munit.FunSuite:
 
   test("a long source does not overflow the stack") {
     // Plain recursion overflows the JVM stack at ~10,000 characters.
-    val tokens = scan(Source("(" * 100_000)).tokens
+    val tokens = partition(scan(Source("(" * 100_000))).tokens
     assertEquals(tokens.size, 100_000)
   }
