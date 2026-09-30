@@ -90,6 +90,12 @@ class ScannerSuite extends munit.FunSuite:
     assertEquals(actual, expected, clue(source, expected, actual))
   }
 
+  test("a comment runs to the end of the line, whatever it contains") {
+    val source = Source("(///Unicode:£§᯽☺♣)")
+    val expected: List[InputElement] = List(Token.LeftParen, Comment("/Unicode:£§᯽☺♣)"))
+    assertEquals(scan(source), expected)
+  }
+
   test("a lexeme of one or two characters compiles") {
     assertNoDiff(compileErrors("""Lexeme("=")"""), "")
     assertNoDiff(compileErrors("""Lexeme("==")"""), "")

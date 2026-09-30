@@ -45,6 +45,7 @@ enum Token(val lexeme: Lexeme) extends Significant:
   case LessEqual extends Token(Lexeme("<="))
   case Greater extends Token(Lexeme(">"))
   case GreaterEqual extends Token(Lexeme(">="))
+  case Slash extends Token(Lexeme("/"))
 
 opaque type Source = String
 object Source:
@@ -75,6 +76,11 @@ def scan(source: Source): List[InputElement] =
       byLexeme.get(x.toString) match
         case None    => ScanError(x) :: acc
         case Some(t) => t :: acc
+
+    case '/' :: '/' :: rest =>
+      val (commentContent, restExComment) = rest.span(_ != '\n')
+      loop(restExComment, Comment(commentContent.mkString) :: acc)
+
 
     case x :: y :: tail =>
 
