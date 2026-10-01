@@ -96,6 +96,28 @@ class ScannerSuite extends munit.FunSuite:
     assertEquals(scan(source), expected)
   }
 
+  test("scanning resumes at the newline that ends a comment") {
+    val source = Source("// hi\n(")
+    val expected: List[InputElement] = List(Comment(" hi"), WhitespaceChar.NewLine, Token.LeftParen)
+    assertEquals(scan(source), expected)
+  }
+
+  test("each whitespace character becomes an element, in source order") {
+    val source = Source(" (\t)\r\n")
+    val expected: List[InputElement] = List(
+      WhitespaceChar.Space, Token.LeftParen,
+      WhitespaceChar.Tab, Token.RightParen,
+      WhitespaceChar.CarriageReturn, WhitespaceChar.NewLine
+    )
+    assertEquals(scan(source), expected)
+  }
+
+  test("whitespace splits a two-character operator") {
+    val source = Source("= =")
+    val expected: List[InputElement] = List(Token.Equal, WhitespaceChar.Space, Token.Equal)
+    assertEquals(scan(source), expected)
+  }
+
   test("a lexeme of one or two characters compiles") {
     assertNoDiff(compileErrors("""Lexeme("=")"""), "")
     assertNoDiff(compileErrors("""Lexeme("==")"""), "")
