@@ -16,17 +16,22 @@ case class ScanResult(errors: List[ScanError] = Nil, tokens: List[Token] = Nil):
     case _ => this
   }
 
+
 def scan(source: Source): List[InputElement] =
 
   @scala.annotation.tailrec
   def loop(src: List[Char], acc: List[InputElement]): List[InputElement] = src match
 
-    // WARNING the order of cases is more significant than it seems.
-    case Nil => acc
-    case Comment.Next(comment, rest)    => loop(rest, comment :: acc)
-    case Token.Next(token, rest) => loop(rest, token :: acc)
-    case WhitespaceChar.Next(whitespace, rest) => loop(rest, whitespace :: acc)
-    case x :: rest => loop(rest, UnRecognized(x) :: acc)
+      case Nil => acc
+
+      // Every kind of input element is tried; the longest match wins (see Recognized.longestMatch),
+      // so the order of the recognisers doesn't matter.
+      case Recognized.LongestMatch(element, consumed, rest) => loop(rest, element :: acc)
+
+      // Catch-all, kept as a plain list pattern on purpose: with Nil above, the compiler can prove
+      // the match is exhaustive. An extractor here (e.g. UnRecognized.Next) would hide that.
+      case x :: rest => loop(rest, UnRecognized(x) :: acc)
+
 
   val rez = loop(source.toList, Nil)
 

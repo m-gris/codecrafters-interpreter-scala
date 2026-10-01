@@ -9,14 +9,17 @@ sealed trait Significant extends Recognized
 sealed trait InSignificant extends Recognized
 case class Comment(text: String) extends InSignificant
 
+type Consumed = List[Char]
+type Remainder = List[Char]
+
 object Comment:
 
   object Next:
-    def unapply(src: List[Char]): Option[(Comment, List[Char])] = src match
+    def unapply(src: List[Char]): Option[(Comment, Consumed, Remainder)] = src match
 
       case '/' :: '/' :: rest =>
         val (content, restExComment) = rest.span(_ != '\n')
-        Some((Comment(content.mkString), restExComment))
+        Some((Comment(content.mkString), '/' :: '/':: content, restExComment))
 
       case _ => None
 
@@ -37,9 +40,28 @@ object WhitespaceChar:
     reverseMap.get(c)
 
   object Next:
-    def unapply(src: List[Char]): Option[(WhitespaceChar, List[Char])] = src match
-      case c :: rest => WhitespaceChar.byChar(c).map( w => (w, rest))
+    def unapply(src: List[Char]): Option[(WhitespaceChar, Consumed, Remainder)] = src match
+      case c :: rest => WhitespaceChar.byChar(c).map( w => (w, List(c), rest))
       case _ => None
+
+object Recognized:
+
+  type Recognizer = List[Char] => Option[(InputElement, Consumed, Remainder)]
+
+  val recognizers: List[Recognizer] = List(
+    Comment.Next.unapply,
+    Token.Next.unapply,
+    WhitespaceChar.Next.unapply
+  )
+
+
+  def longestMatch(recognizers: List[Recognizer])(src: List[Char]): Option[(InputElement, Consumed, Remainder)] =
+      val all: List[(InputElement, Consumed, Remainder)] = recognizers.flatMap(recog => recog(src))
+      all.maxByOption(_._2.size)
+
+  object LongestMatch:
+    def unapply(src: List[Char]): Option[(InputElement, Consumed, Remainder)] = longestMatch(recognizers)(src)
+
 
 
 case class UnRecognized(char: Char) extends InputElement
@@ -94,14 +116,14 @@ object Token:
 
   object Next:
 
-    def unapply(src: List[Char]): Option[(Token, List[Char])] = src match
+    def unapply(src: List[Char]): Option[(Token, Consumed, Remainder)] = src match
 
       case Nil => None
 
       case x :: y :: rest => (tokenFor(x.toString), tokenFor(List(x, y).mkString)) match
 
           case (None, None) => None
-          case (_ , Some(xyt)) => Some((xyt, rest))
-          case (Some(xt), None) => Some((xt, y::rest))
+          case (_ , Some(xyt)) => Some((xyt, List(x, y), rest))
+          case (Some(xt), None) => Some((xt, List(x), y::rest))
 
-      case x :: rest => tokenFor(x.toString).map(token => (token, rest))
+      case x :: rest => tokenFor(x.toString).map(token => (token, List(x), rest))

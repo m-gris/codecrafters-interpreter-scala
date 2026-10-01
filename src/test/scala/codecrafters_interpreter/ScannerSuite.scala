@@ -134,6 +134,32 @@ class ScannerSuite extends munit.FunSuite:
     )
   }
 
+  test("every recogniser splits its input losslessly and makes progress") {
+    val samples = List("", "(", "()", "==", "=(", "!=!", "<=>", "/", "//", "// hi\n(", " x", "\t\r\n", "@#")
+    for
+      recognizer <- Recognized.recognizers
+      sample     <- samples
+      src         = sample.toList
+      (_, consumed, rest) <- recognizer(src)
+    do
+      assertEquals(consumed ++ rest, src, s"lossless split failed on \"$sample\"")
+      assert(consumed.nonEmpty, s"no progress on \"$sample\"")
+  }
+
+  test("the order of recognisers doesn't change what the longest match finds") {
+    val samples = List("", "(", "==", "=(", "!=!", "<=>", "/", "//", "// hi\n(", " x", "\t\r\n", "@#")
+    for
+      sample <- samples
+      src     = sample.toList
+      order  <- Recognized.recognizers.permutations
+    do
+      assertEquals(
+        Recognized.longestMatch(order)(src),
+        Recognized.longestMatch(Recognized.recognizers)(src),
+        s"the order changed the result on \"$sample\""
+      )
+  }
+
   test("a long source does not overflow the stack") {
     // Plain recursion overflows the JVM stack at ~10,000 characters.
     val tokens = partition(scan(Source("(" * 100_000))).tokens
