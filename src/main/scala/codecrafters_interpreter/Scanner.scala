@@ -2,6 +2,7 @@ package codecrafters_interpreter
 
 
 opaque type Source = String
+
 object Source:
   def apply(s: String): Source = s
 
@@ -10,17 +11,17 @@ type ScanError = UnRecognized
 val ScanError = UnRecognized
 
 case class ScanResult(errors: List[ScanError] = Nil, tokens: List[Token] = Nil):
-  def add(e: InputElement): ScanResult =  e match {
+  def add(e: LexicalElement): ScanResult =  e match {
     case t: Token     => this.copy(tokens= t :: this.tokens)
     case e: ScanError => this.copy(errors=e :: this.errors)
     case _ => this
   }
 
 
-def scan(source: Source): List[InputElement] =
+def scan(source: Source): List[LexicalElement] =
 
   @scala.annotation.tailrec
-  def loop(src: List[Char], acc: List[InputElement]): List[InputElement] = src match
+  def loop(src: List[Char], acc: List[LexicalElement]): List[LexicalElement] = src match
 
       case Nil => acc
 
@@ -37,6 +38,6 @@ def scan(source: Source): List[InputElement] =
 
   rez.reverse
 
-def partition(elements: List[InputElement]): ScanResult =
+def partition(elements: List[LexicalElement]): ScanResult =
   val rez = elements.foldLeft(ScanResult(Nil, Nil)) { (acc, e) => acc.add(e) } 
   rez.copy(rez.errors.reverse, rez.tokens.reverse)

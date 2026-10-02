@@ -10,7 +10,7 @@ object Main {
       case Array("tokenize", filename) =>
 
         val fileContent: String = Files.readString(Path.of(filename))
-        val ils: List[InputElement] = scan(Source(fileContent))
+        val ils: List[LexicalElement] = scan(Source(fileContent))
         val rez: ScanResult = partition(ils)
         rez.tokens.render.foreach(println)
         rez.errors.map(_.render).foreach(Console.err.println)

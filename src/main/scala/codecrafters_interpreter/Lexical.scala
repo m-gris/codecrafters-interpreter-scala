@@ -3,19 +3,29 @@ package codecrafters_interpreter
 import scala.compiletime.ops.string.Length
 import scala.compiletime.ops.int.<=
 
-sealed trait InputElement
-sealed trait Recognized extends InputElement
+
+sealed trait LexicalElement
+
+sealed trait Recognized extends LexicalElement
 sealed trait Significant extends Recognized
 sealed trait InSignificant extends Recognized
 case class Comment(text: String) extends InSignificant
 
+case class UnRecognized(char: Char) extends LexicalElement
+
+type Input = List[Char]
 type Consumed = List[Char]
 type Remainder = List[Char]
 
+trait Lexer[+A]:
+  def lex(src: Input): Option[(A, Consumed, Remainder)]
+
+
 object Comment:
 
-  object Next:
-    def unapply(src: List[Char]): Option[(Comment, Consumed, Remainder)] = src match
+  given Lexer[Comment] with
+
+    def lex(src: Input): Option[(Comment, Consumed, Remainder)] = src match
 
       case '/' :: '/' :: rest =>
         val (content, restExComment) = rest.span(_ != '\n')
@@ -35,40 +45,29 @@ object WhitespaceChar:
   private val reverseMap: Map[Char, WhitespaceChar] =
       WhitespaceChar.values.map(variant => variant.char -> variant).toMap
 
-  def byChar(c: Char): Option[WhitespaceChar] =
+  def byChar(c: Char): Option[WhitespaceChar] = reverseMap.get(c)
 
-    reverseMap.get(c)
-
-  object Next:
-    def unapply(src: List[Char]): Option[(WhitespaceChar, Consumed, Remainder)] = src match
+  given Lexer[WhitespaceChar] with
+    def lex(src: Input): Option[(WhitespaceChar, Consumed, Remainder)] = src match
       case c :: rest => WhitespaceChar.byChar(c).map( w => (w, List(c), rest))
       case _ => None
 
+
+
 object Recognized:
 
-  type Recognizer = List[Char] => Option[(InputElement, Consumed, Remainder)]
-
-  val recognizers: List[Recognizer] = List(
-    Comment.Next.unapply,
-    Token.Next.unapply,
-    WhitespaceChar.Next.unapply
+  val recognizers: List[Lexer[Recognized]] = List(
+    summon[Lexer[Comment]],
+    summon[Lexer[Token]],
+    summon[Lexer[WhitespaceChar]],
   )
 
-
-  def longestMatch(recognizers: List[Recognizer])(src: List[Char]): Option[(InputElement, Consumed, Remainder)] =
-      val all: List[(InputElement, Consumed, Remainder)] = recognizers.flatMap(recog => recog(src))
+  def longestMatch(recognizers: List[Lexer[Recognized]] )(src: Input): Option[(LexicalElement, Consumed, Remainder)] =
+      val all: List[(LexicalElement, Consumed, Remainder)] = recognizers.flatMap(recog => recog.lex(src))
       all.maxByOption(_._2.size)
 
   object LongestMatch:
-    def unapply(src: List[Char]): Option[(InputElement, Consumed, Remainder)] = longestMatch(recognizers)(src)
-
-
-
-case class UnRecognized(char: Char) extends InputElement
-
-object UnRecognized:
-  object Next:
-    def unapply(src: List[Char]): Option[(UnRecognized, List[Char])] = ???
+    def unapply(src: Input): Option[(LexicalElement, Consumed, Remainder)] = longestMatch(recognizers)(src)
 
 
 
@@ -84,7 +83,7 @@ object Lexeme:
   // true or false, and =:= only has an instance when both sides are the
   // same type. No proof, no compile: Lexeme("...") is rejected.
   (using (Length[S] <= 2) =:= true): Lexeme = s
-  // very bad name... maxSubstring ??? bad too.. what ???
+
 
 enum Token(val lexeme: Lexeme) extends Significant:
   case LeftParen extends Token(Lexeme("("))
@@ -114,9 +113,8 @@ private def tokenFor(s: String): Option[Token] = byLexeme.get(s)
 
 object Token:
 
-  object Next:
-
-    def unapply(src: List[Char]): Option[(Token, Consumed, Remainder)] = src match
+  given Lexer[Token] with
+    def lex(src: Input): Option[(Token, Consumed, Remainder)] = src match
 
       case Nil => None
 

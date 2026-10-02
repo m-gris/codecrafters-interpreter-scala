@@ -92,19 +92,19 @@ class ScannerSuite extends munit.FunSuite:
 
   test("a comment runs to the end of the line, whatever it contains") {
     val source = Source("(///Unicode:£§᯽☺♣)")
-    val expected: List[InputElement] = List(Token.LeftParen, Comment("/Unicode:£§᯽☺♣)"))
+    val expected: List[LexicalElement] = List(Token.LeftParen, Comment("/Unicode:£§᯽☺♣)"))
     assertEquals(scan(source), expected)
   }
 
   test("scanning resumes at the newline that ends a comment") {
     val source = Source("// hi\n(")
-    val expected: List[InputElement] = List(Comment(" hi"), WhitespaceChar.NewLine, Token.LeftParen)
+    val expected: List[LexicalElement] = List(Comment(" hi"), WhitespaceChar.NewLine, Token.LeftParen)
     assertEquals(scan(source), expected)
   }
 
   test("each whitespace character becomes an element, in source order") {
     val source = Source(" (\t)\r\n")
-    val expected: List[InputElement] = List(
+    val expected: List[LexicalElement] = List(
       WhitespaceChar.Space, Token.LeftParen,
       WhitespaceChar.Tab, Token.RightParen,
       WhitespaceChar.CarriageReturn, WhitespaceChar.NewLine
@@ -114,7 +114,7 @@ class ScannerSuite extends munit.FunSuite:
 
   test("whitespace splits a two-character operator") {
     val source = Source("= =")
-    val expected: List[InputElement] = List(Token.Equal, WhitespaceChar.Space, Token.Equal)
+    val expected: List[LexicalElement] = List(Token.Equal, WhitespaceChar.Space, Token.Equal)
     assertEquals(scan(source), expected)
   }
 
@@ -140,7 +140,7 @@ class ScannerSuite extends munit.FunSuite:
       recognizer <- Recognized.recognizers
       sample     <- samples
       src         = sample.toList
-      (_, consumed, rest) <- recognizer(src)
+      (_, consumed, rest) <- recognizer.lex(src)
     do
       assertEquals(consumed ++ rest, src, s"lossless split failed on \"$sample\"")
       assert(consumed.nonEmpty, s"no progress on \"$sample\"")
