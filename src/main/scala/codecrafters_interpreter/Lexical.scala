@@ -1,14 +1,16 @@
 package codecrafters_interpreter
 
+import scala.deriving.Mirror
+import scala.compiletime.summonAll
 import scala.compiletime.ops.string.Length
 import scala.compiletime.ops.int.<=
 
 
 sealed trait LexicalElement
 
-sealed trait Recognized extends LexicalElement
-sealed trait Significant extends Recognized
-sealed trait InSignificant extends Recognized
+sealed trait Recognized extends LexicalElement derives Lexer
+sealed trait Significant extends Recognized derives Lexer
+sealed trait InSignificant extends Recognized derives Lexer
 case class Comment(text: String) extends InSignificant
 
 case class UnRecognized(char: Char) extends LexicalElement
@@ -19,6 +21,14 @@ type Remainder = List[Char]
 
 trait Lexer[+A]:
   def lex(src: Input): Option[(A, Consumed, Remainder)]
+
+object Lexer:
+  // Called by `derives Lexer`: a sealed type's lexer is the longest match among its children's lexers.
+  inline def derived[A](using m: Mirror.SumOf[A]): Lexer[A] =
+    // The cast is safe: every child of a sealed A is a subtype of A, and Lexer is covariant.
+    // The Mirror doesn't expose that relation to the type checker, so it can't prove it here.
+    val lexers: List[Lexer[A]] = summonAll[Tuple.Map[m.MirroredElemTypes, Lexer]].toList.asInstanceOf[List[Lexer[A]]]
+    longest(lexers)
 
 
 object Comment:
@@ -59,21 +69,10 @@ def longest[A](lexers: List[Lexer[A]]): Lexer[A] =
 
 
 
-object Significant:
-  given Lexer[Significant] = longest(List(summon[Lexer[Token]]))
-
-object InSignificant:
-  given Lexer[InSignificant] = longest(List(summon[Lexer[Comment]], summon[Lexer[WhitespaceChar]]))
-
 object Recognized:
-
-  given Lexer[Recognized] = longest(List(summon[Lexer[Significant]], summon[Lexer[InSignificant]]))
 
   object LongestMatch:
     def unapply(src: Input): Option[(LexicalElement, Consumed, Remainder)] = summon[Lexer[Recognized]].lex(src)
-
-
-
 
 opaque type Lexeme = String
 
