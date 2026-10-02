@@ -25,7 +25,7 @@ def scan(source: Source): List[LexicalElement] =
 
       case Nil => acc
 
-      // Every kind of input element is tried; the longest match wins (see Recognized.longestMatch),
+      // Every kind of input element is tried; the longest match wins
       // so the order of the recognisers doesn't matter.
       case Recognized.LongestMatch(element, consumed, rest) => loop(rest, element :: acc)
 

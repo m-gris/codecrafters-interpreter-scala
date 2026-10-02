@@ -1,5 +1,9 @@
 package codecrafters_interpreter
 
+
+private val leafLexers: List[Lexer[Recognized]] =
+  List(summon[Lexer[Comment]], summon[Lexer[Token]], summon[Lexer[WhitespaceChar]])
+
 class ScannerSuite extends munit.FunSuite:
 
   // Printed by munit in place of "values are not the same", so a failure shows its input.
@@ -134,28 +138,28 @@ class ScannerSuite extends munit.FunSuite:
     )
   }
 
-  test("every recogniser splits its input losslessly and makes progress") {
+  test("every lexer splits its input losslessly and makes progress") {
     val samples = List("", "(", "()", "==", "=(", "!=!", "<=>", "/", "//", "// hi\n(", " x", "\t\r\n", "@#")
     for
-      recognizer <- Recognized.recognizers
+      lexer <- leafLexers
       sample     <- samples
       src         = sample.toList
-      (_, consumed, rest) <- recognizer.lex(src)
+      (_, consumed, rest) <- lexer.lex(src)
     do
       assertEquals(consumed ++ rest, src, s"lossless split failed on \"$sample\"")
       assert(consumed.nonEmpty, s"no progress on \"$sample\"")
   }
 
-  test("the order of recognisers doesn't change what the longest match finds") {
+  test("the order of lexer doesn't change what the longest match finds") {
     val samples = List("", "(", "==", "=(", "!=!", "<=>", "/", "//", "// hi\n(", " x", "\t\r\n", "@#")
     for
       sample <- samples
       src     = sample.toList
-      order  <- Recognized.recognizers.permutations
+      order  <- leafLexers.permutations
     do
       assertEquals(
-        Recognized.longestMatch(order)(src),
-        Recognized.longestMatch(Recognized.recognizers)(src),
+        longest(order).lex(src),
+        longest(leafLexers).lex(src),
         s"the order changed the result on \"$sample\""
       )
   }

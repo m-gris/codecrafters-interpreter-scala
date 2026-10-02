@@ -52,22 +52,25 @@ object WhitespaceChar:
       case c :: rest => WhitespaceChar.byChar(c).map( w => (w, List(c), rest))
       case _ => None
 
+def longest[A](lexers: List[Lexer[A]]): Lexer[A] =
+  (src: Input) => lexers
+                    .flatMap(recog => recog.lex(src))
+                    .maxByOption(_._2.size)
 
+
+
+object Significant:
+  given Lexer[Significant] = longest(List(summon[Lexer[Token]]))
+
+object InSignificant:
+  given Lexer[InSignificant] = longest(List(summon[Lexer[Comment]], summon[Lexer[WhitespaceChar]]))
 
 object Recognized:
 
-  val recognizers: List[Lexer[Recognized]] = List(
-    summon[Lexer[Comment]],
-    summon[Lexer[Token]],
-    summon[Lexer[WhitespaceChar]],
-  )
-
-  def longestMatch(recognizers: List[Lexer[Recognized]] )(src: Input): Option[(LexicalElement, Consumed, Remainder)] =
-      val all: List[(LexicalElement, Consumed, Remainder)] = recognizers.flatMap(recog => recog.lex(src))
-      all.maxByOption(_._2.size)
+  given Lexer[Recognized] = longest(List(summon[Lexer[Significant]], summon[Lexer[InSignificant]]))
 
   object LongestMatch:
-    def unapply(src: Input): Option[(LexicalElement, Consumed, Remainder)] = longestMatch(recognizers)(src)
+    def unapply(src: Input): Option[(LexicalElement, Consumed, Remainder)] = summon[Lexer[Recognized]].lex(src)
 
 
 
