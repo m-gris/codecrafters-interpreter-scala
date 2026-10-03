@@ -34,6 +34,8 @@ def scan(source: Source): List[LexicalElement] =
 
   rez.reverse
 
+def unscan(elements: List[LexicalElement]): Source = elements.map(_.sourceText).mkString
+
 def partition(elements: List[LexicalElement]): ScanResult =
   val rez = elements.foldLeft(ScanResult(Nil, Nil)) { (acc, e) => acc.add(e) } 
   rez.copy(rez.errors.reverse, rez.tokens.reverse)

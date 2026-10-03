@@ -186,3 +186,20 @@ class ScannerSuite extends munit.FunSuite:
     val tokens = partition(scan(Source("(" * 100_000))).tokens
     assertEquals(tokens.size, 100_000)
   }
+
+
+// Properties: rules that must hold for every source, checked on generated inputs.
+// In this file so they can share `alphabet` with the example-based tests above.
+class ScannerProperties extends munit.ScalaCheckSuite:
+
+  import org.scalacheck.Gen
+  import org.scalacheck.Prop.forAll
+
+  private val sources: Gen[String] = Gen.listOf(Gen.oneOf(alphabet)).map(_.mkString)
+
+  property("round trip: the scanned elements' source texts rebuild the source exactly") {
+    forAll(sources) { text =>
+      val source = Source(text)
+      assertEquals(unscan(scan(source)), source)
+    }
+  }
