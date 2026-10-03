@@ -4,6 +4,16 @@ package codecrafters_interpreter
 private val leafLexers: List[Lexer[Recognized]] =
   List(summon[Lexer[Comment]], summon[Lexer[Token]], summon[Lexer[WhitespaceChar]])
 
+// Every value with a fixed spelling. A new FixedSpelling enum must be added here.
+private val fixedSpellings: List[FixedSpelling] =
+  Token.values.toList ++ WhitespaceChar.values.toList
+
+// The characters generated inputs are drawn from: every character some lexer knows (taken from
+// the spellings, so new tokens are included automatically; this also covers `//` via Slash),
+// plus characters no lexer knows, so unrecognised input and its boundaries get exercised too.
+private val alphabet: List[Char] =
+  fixedSpellings.flatMap(_.spelling).distinct ++ List('@', 'a')
+
 class ScannerSuite extends munit.FunSuite:
 
   // Printed by munit in place of "values are not the same", so a failure shows its input.
@@ -167,8 +177,7 @@ class ScannerSuite extends munit.FunSuite:
   test("no two fixed-spelling elements share a spelling, within or across enums") {
     // Two matches of the same length at the same spot have the same spelling, so a duplicate
     // spelling is the only way longest match can tie and become order-dependent.
-    val all: List[FixedSpelling] = Token.values.toList ++ WhitespaceChar.values.toList
-    val duplicates = all.groupBy(_.spelling).filter(_._2.size > 1)
+    val duplicates = fixedSpellings.groupBy(_.spelling).filter(_._2.size > 1)
     assertEquals(duplicates, Map.empty[List[Char], List[FixedSpelling]])
   }
 

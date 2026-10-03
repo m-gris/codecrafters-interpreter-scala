@@ -6,17 +6,21 @@ import scala.compiletime.ops.string.Length
 import scala.compiletime.ops.int.<=
 
 
-sealed trait LexicalElement
+sealed trait LexicalElement:
+  def sourceText: String
 
 sealed trait FixedSpelling:
   def spelling: List[Char]
+  def sourceText: String = spelling.mkString
 
 sealed trait Recognized extends LexicalElement derives Lexer
 sealed trait Significant extends Recognized derives Lexer
 sealed trait InSignificant extends Recognized derives Lexer
-case class Comment(text: String) extends InSignificant
+case class Comment(content: String) extends InSignificant:
+  val sourceText: String = Comment.delimiter.mkString ++ this.content
 
-case class UnRecognized(char: Char) extends LexicalElement
+case class UnRecognized(char: Char) extends LexicalElement:
+  val sourceText: String = char.toString
 
 type Input = List[Char]
 type Consumed = List[Char]
@@ -38,15 +42,17 @@ object Lexer:
 
 object Comment:
 
+  val delimiter: List[Char] = List('/', '/')
+
   given Lexer[Comment] with
 
-    def lex(src: Input): Option[(Comment, Consumed, Remainder)] = src match
-
-      case '/' :: '/' :: rest =>
+    def lex(src: Input): Option[(Comment, Consumed, Remainder)] =
+      if src.startsWith(delimiter) then
+        val rest = src.drop(delimiter.size)
         val (content, restExComment) = rest.span(_ != '\n')
-        Some((Comment(content.mkString), '/' :: '/':: content, restExComment))
+        Some((Comment(content.mkString), delimiter ::: content, restExComment))
+      else None
 
-      case _ => None
 
 
 enum WhitespaceChar(val char: Char) extends InSignificant, FixedSpelling:
@@ -110,6 +116,7 @@ enum Token(val lexeme: Lexeme) extends Significant, FixedSpelling:
 
   def spelling = this.lexeme.chars
 
+
 object Token:
 
   given Lexer[Token] = longestPrefixMatch(Token.values.toList)
@@ -117,3 +124,7 @@ object Token:
 def longestPrefixMatch[A <: FixedSpelling](candidates: List[A]): Lexer[A] = (input: Input) =>
   candidates.filter(c => input.startsWith(c.spelling)).maxByOption(_.spelling.size)
     .map(winner => (winner,winner.spelling,input.drop(winner.spelling.size)))
+
+
+
+// val ALPHABET: List[Char]

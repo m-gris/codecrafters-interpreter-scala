@@ -16,7 +16,7 @@ private def name(t: Token): String = t match {
   case t               => toSnakeCase(t.toString)
 }
 
-extension (t: Token) def render: String = s"${name(t)} ${t.lexeme} $NoLiteral"
+extension (t: Token) def render: String = s"${name(t)} ${t.sourceText} $NoLiteral"
 
 extension (s: UnRecognized)
   def render: String = s"[line 1] Error: Unexpected character: ${s.char}"
@@ -30,7 +30,7 @@ extension (ts: List[Token])
 
       ts match {
         case Nil       => "EOF  null" :: acc
-        case t :: rest => loop(rest, s"${name(t)} ${t.lexeme} $NoLiteral" :: acc)
+        case t :: rest => loop(rest, s"${name(t)} ${t.sourceText} $NoLiteral" :: acc)
       }
 
     val rez = loop(ts, Nil)
