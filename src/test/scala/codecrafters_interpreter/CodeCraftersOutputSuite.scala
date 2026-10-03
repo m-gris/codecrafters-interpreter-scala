@@ -17,7 +17,7 @@ class CodeCraftersOutputSuite extends munit.FunSuite:
 
   test("render scan error") {
     assertEquals(
-      ScanError('@').render,
+      UnRecognized('@').render,
       """[line 1] Error: Unexpected character: @"""
     )
   }

@@ -8,6 +8,9 @@ import scala.compiletime.ops.int.<=
 
 sealed trait LexicalElement
 
+sealed trait FixedSpelling:
+  def spelling: List[Char]
+
 sealed trait Recognized extends LexicalElement derives Lexer
 sealed trait Significant extends Recognized derives Lexer
 sealed trait InSignificant extends Recognized derives Lexer
@@ -19,6 +22,8 @@ type Input = List[Char]
 type Consumed = List[Char]
 type Remainder = List[Char]
 
+// A Lexer[A] is a function Input => Option[(A, Consumed, Remainder)]: the A it recognised, what that consumed, what's left.
+// Kept as a trait with a named method rather than extending Function1, whose andThen/compose would read as lexer combinators.
 trait Lexer[+A]:
   def lex(src: Input): Option[(A, Consumed, Remainder)]
 
@@ -44,29 +49,22 @@ object Comment:
       case _ => None
 
 
-enum WhitespaceChar(val char: Char) extends InSignificant:
+enum WhitespaceChar(val char: Char) extends InSignificant, FixedSpelling:
+
   case Space extends WhitespaceChar(' ')
   case NewLine extends WhitespaceChar('\n')
   case Tab extends WhitespaceChar('\t')
   case CarriageReturn extends WhitespaceChar('\r')
 
+  def spelling = List(this.char)
+
 object WhitespaceChar:
-
-  private val reverseMap: Map[Char, WhitespaceChar] =
-      WhitespaceChar.values.map(variant => variant.char -> variant).toMap
-
-  def byChar(c: Char): Option[WhitespaceChar] = reverseMap.get(c)
-
-  given Lexer[WhitespaceChar] with
-    def lex(src: Input): Option[(WhitespaceChar, Consumed, Remainder)] = src match
-      case c :: rest => WhitespaceChar.byChar(c).map( w => (w, List(c), rest))
-      case _ => None
+  given Lexer[WhitespaceChar] = longestPrefixMatch(WhitespaceChar.values.toList)
 
 def longest[A](lexers: List[Lexer[A]]): Lexer[A] =
   (src: Input) => lexers
                     .flatMap(recog => recog.lex(src))
                     .maxByOption(_._2.size)
-
 
 
 object Recognized:
@@ -86,8 +84,10 @@ object Lexeme:
   // same type. No proof, no compile: Lexeme("...") is rejected.
   (using (Length[S] <= 2) =:= true): Lexeme = s
 
+  extension (l: Lexeme) def chars: List[Char] = l.toList
 
-enum Token(val lexeme: Lexeme) extends Significant:
+
+enum Token(val lexeme: Lexeme) extends Significant, FixedSpelling:
   case LeftParen extends Token(Lexeme("("))
   case LeftBrace extends Token(Lexeme("{"))
   case RightParen extends Token(Lexeme(")"))
@@ -108,22 +108,12 @@ enum Token(val lexeme: Lexeme) extends Significant:
   case GreaterEqual extends Token(Lexeme(">="))
   case Slash extends Token(Lexeme("/"))
 
-val byLexeme: Map[Lexeme, Token] =
-  Token.values.map(t => t.lexeme -> t).toMap
-
-private def tokenFor(s: String): Option[Token] = byLexeme.get(s)
+  def spelling = this.lexeme.chars
 
 object Token:
 
-  given Lexer[Token] with
-    def lex(src: Input): Option[(Token, Consumed, Remainder)] = src match
+  given Lexer[Token] = longestPrefixMatch(Token.values.toList)
 
-      case Nil => None
-
-      case x :: y :: rest => (tokenFor(x.toString), tokenFor(List(x, y).mkString)) match
-
-          case (None, None) => None
-          case (_ , Some(xyt)) => Some((xyt, List(x, y), rest))
-          case (Some(xt), None) => Some((xt, List(x), y::rest))
-
-      case x :: rest => tokenFor(x.toString).map(token => (token, List(x), rest))
+def longestPrefixMatch[A <: FixedSpelling](candidates: List[A]): Lexer[A] = (input: Input) =>
+  candidates.filter(c => input.startsWith(c.spelling)).maxByOption(_.spelling.size)
+    .map(winner => (winner,winner.spelling,input.drop(winner.spelling.size)))

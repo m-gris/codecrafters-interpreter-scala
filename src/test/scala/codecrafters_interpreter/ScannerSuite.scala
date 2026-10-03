@@ -42,7 +42,7 @@ class ScannerSuite extends munit.FunSuite:
   test("an unrecognised character is reported and does not stop scanning") {
     val source = Source("@")
     val expected = ScanResult(
-      errors = List(ScanError('@')),
+      errors = List(UnRecognized('@')),
       tokens = List()
     )
     val actual = partition(scan(source))
@@ -52,7 +52,7 @@ class ScannerSuite extends munit.FunSuite:
   test("a token after an unrecognised character is still scanned") {
     val source = Source("@(")
     val expected = ScanResult(
-      errors = List(ScanError('@')),
+      errors = List(UnRecognized('@')),
       tokens = List(Token.LeftParen)
     )
     val actual = partition(scan(source))
@@ -162,6 +162,14 @@ class ScannerSuite extends munit.FunSuite:
         longest(leafLexers).lex(src),
         s"the order changed the result on \"$sample\""
       )
+  }
+
+  test("no two fixed-spelling elements share a spelling, within or across enums") {
+    // Two matches of the same length at the same spot have the same spelling, so a duplicate
+    // spelling is the only way longest match can tie and become order-dependent.
+    val all: List[FixedSpelling] = Token.values.toList ++ WhitespaceChar.values.toList
+    val duplicates = all.groupBy(_.spelling).filter(_._2.size > 1)
+    assertEquals(duplicates, Map.empty[List[Char], List[FixedSpelling]])
   }
 
   test("a long source does not overflow the stack") {
