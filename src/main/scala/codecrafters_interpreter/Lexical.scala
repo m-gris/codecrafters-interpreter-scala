@@ -43,13 +43,14 @@ object Lexer:
 object Comment:
 
   val delimiter: List[Char] = List('/', '/')
+  val terminator: WhitespaceChar = WhitespaceChar.NewLine
 
   given Lexer[Comment] with
 
     def lex(src: Input): Option[(Comment, Consumed, Remainder)] =
       if src.startsWith(delimiter) then
         val rest = src.drop(delimiter.size)
-        val (content, restExComment) = rest.span(_ != '\n')
+        val (content, restExComment) = rest.span(_ != terminator.char)
         Some((Comment(content.mkString), delimiter ::: content, restExComment))
       else None
 

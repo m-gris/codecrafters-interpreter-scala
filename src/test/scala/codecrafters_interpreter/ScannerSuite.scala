@@ -203,3 +203,16 @@ class ScannerProperties extends munit.ScalaCheckSuite:
       assertEquals(unscan(scan(source)), source)
     }
   }
+
+  // Sources that start at a line boundary: every variable-length element (today, only Comment)
+  // stops at its terminator, and no fixed spelling contains it, so nothing can cross the boundary.
+  private val sourcesAfterNewline: Gen[String] = sources.map(s => Comment.terminator.char +: s)
+
+  // Without the newline this is false: "=" ++ "=" scans as EqualEqual, and "// hi" ++ "(" as one comment.
+  property("induction: when b starts with a newline, scanning a ++ b equals scanning a, then b") {
+    forAll(sources, sourcesAfterNewline) { (a, b) =>
+      assertEquals(scan(Source(a ++ b)), scan(Source(a)) ++ scan(Source(b)))
+    }
+  }
+
+
