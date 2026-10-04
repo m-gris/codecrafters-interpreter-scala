@@ -195,7 +195,10 @@ class ScannerProperties extends munit.ScalaCheckSuite:
   import org.scalacheck.Gen
   import org.scalacheck.Prop.forAll
 
-  private val sources: Gen[String] = Gen.listOf(Gen.oneOf(alphabet)).map(_.mkString)
+  // Built from fragments, not just characters: drawn character by character, "//" is rare, so
+  // comments would almost never be generated and the comment properties would pass vacuously.
+  private val fragments: List[String] = alphabet.map(_.toString) :+ Comment.delimiter.mkString
+  private val sources: Gen[String] = Gen.listOf(Gen.oneOf(fragments)).map(_.mkString)
 
   property("round trip: the scanned elements' source texts rebuild the source exactly") {
     forAll(sources) { text =>
@@ -212,6 +215,48 @@ class ScannerProperties extends munit.ScalaCheckSuite:
   property("induction: when b starts with a newline, scanning a ++ b equals scanning a, then b") {
     forAll(sources, sourcesAfterNewline) { (a, b) =>
       assertEquals(scan(Source(a ++ b)), scan(Source(a)) ++ scan(Source(b)))
+    }
+  }
+
+  // Invariants: properties of scan's output alone, whatever the source.
+
+  // Each element next to the one after it, e.g. (LeftParen, Equal), (Equal, NewLine).
+  private def neighbours(elements: List[LexicalElement]): List[(LexicalElement, LexicalElement)] =
+    elements.zip(elements.drop(1))
+
+  property("invariant: no element has empty source text (every step makes progress)") {
+    forAll(sources) { text =>
+      scan(Source(text)).foreach(e => assert(e.sourceText.nonEmpty, s"$e has empty source text"))
+    }
+  }
+
+  property("invariant: a comment's content never contains its terminator") {
+    forAll(sources) { text =>
+      scan(Source(text)).collect { case c: Comment => c }.foreach { c =>
+        assert(!c.content.contains(Comment.terminator.char), s"$c contains its terminator")
+      }
+    }
+  }
+
+  property("invariant: a comment is followed by its terminator, or by nothing") {
+    forAll(sources) { text =>
+      neighbours(scan(Source(text))).collect { case (c: Comment, next) => (c, next) }.foreach { (c, next) =>
+        assertEquals(next, Comment.terminator, s"$c is followed by $next")
+      }
+    }
+  }
+
+  // Maximal munch, seen from its result, e.g. never Equal, Equal. Stated from the spellings and the
+  // comment delimiter, not by asking the lexers: a check that asks the code under test agrees with it.
+  property("invariant: no element could have been extended into its neighbour (maximal munch)") {
+    forAll(sources) { text =>
+      neighbours(scan(Source(text))).foreach { (e, next) =>
+        val both = (e.sourceText ++ next.sourceText).toList
+        val longer = fixedSpellings.filter(f => f.spelling.size > e.sourceText.size && both.startsWith(f.spelling))
+        assertEquals(longer, Nil, s"$e could have been extended into $next")
+        if both.startsWith(Comment.delimiter) then
+          assert(e.isInstanceOf[Comment], s"$e, $next should have started a comment")
+      }
     }
   }
 
