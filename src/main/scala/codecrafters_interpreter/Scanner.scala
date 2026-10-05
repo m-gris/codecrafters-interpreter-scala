@@ -6,14 +6,6 @@ opaque type Source = String
 object Source:
   def apply(s: String): Source = s
 
-case class ScanResult(errors: List[UnRecognized] = Nil, tokens: List[Token] = Nil):
-  def add(e: LexicalElement): ScanResult =  e match {
-    case t: Token     => this.copy(tokens= t :: this.tokens)
-    case e: UnRecognized => this.copy(errors=e :: this.errors)
-    case _ => this
-  }
-
-
 def scan(source: Source): List[LexicalElement] =
 
   @scala.annotation.tailrec
@@ -36,6 +28,13 @@ def scan(source: Source): List[LexicalElement] =
 
 def unscan(elements: List[LexicalElement]): Source = elements.map(_.sourceText).mkString
 
-def partition(elements: List[LexicalElement]): ScanResult =
-  val rez = elements.foldLeft(ScanResult(Nil, Nil)) { (acc, e) => acc.add(e) } 
-  rez.copy(rez.errors.reverse, rez.tokens.reverse)
+
+case class Located[+A](element: A, lineNumber: Int)
+
+def locate(elements: List[LexicalElement]): List[Located[LexicalElement]] =
+
+  elements.foldLeft( ( 1, List.empty[(LexicalElement, Int)] ) ) {
+    case ( (count, acc)  , (elmt @ WhitespaceChar.NewLine)) => (count + 1, (elmt, count) :: acc )
+    case ( (count, acc), elmt ) => (count, (elmt, count) :: acc)
+  }._2.map((element, loc) => Located(element, loc)).reverse
+

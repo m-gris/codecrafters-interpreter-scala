@@ -17,10 +17,10 @@ private val alphabet: List[Char] =
 class ScannerSuite extends munit.FunSuite:
 
   // Printed by munit in place of "values are not the same", so a failure shows its input.
-  private def clue(
+  private def clue[A](
       source: Source,
-      expected: ScanResult,
-      actual: ScanResult
+      expected: A,
+      actual: A
   ): String =
     s"""
        |  source   = "$source"
@@ -29,78 +29,78 @@ class ScannerSuite extends munit.FunSuite:
 
   test("empty source yields an empty list") {
     val emptySource = Source("")
-    val expected = ScanResult(Nil, List())
-    val actual = partition(scan(emptySource))
+    val expected: List[LexicalElement] = Nil
+    val actual = scan(emptySource)
     assertEquals(actual, expected, clue(emptySource, expected, actual))
   }
 
   test("two single-char tokens side by side are both kept") {
     val source = Source("()")
-    val expected = ScanResult(Nil, List(Token.LeftParen, Token.RightParen))
-    val actual = partition(scan(source))
+    val expected: List[LexicalElement] = List(Token.LeftParen, Token.RightParen)
+    val actual = scan(source)
     assertEquals(actual, expected, clue(source, expected, actual))
   }
 
   test("a multi-token source yields its tokens in source order") {
     val source = Source("())")
-    val expected =
-      ScanResult(Nil, List(Token.LeftParen, Token.RightParen, Token.RightParen))
-    val actual = partition(scan(source))
+    val expected: List[LexicalElement] = List(Token.LeftParen, Token.RightParen, Token.RightParen)
+    val actual = scan(source)
     assertEquals(actual, expected, clue(source, expected, actual))
   }
 
   test("an unrecognised character is reported and does not stop scanning") {
     val source = Source("@")
-    val expected = ScanResult(
-      errors = List(UnRecognized('@')),
-      tokens = List()
-    )
-    val actual = partition(scan(source))
+    val expected: List[LexicalElement] = List(UnRecognized('@'))
+    val actual = scan(source)
     assertEquals(actual, expected, clue(source, expected, actual))
   }
 
   test("a token after an unrecognised character is still scanned") {
     val source = Source("@(")
-    val expected = ScanResult(
-      errors = List(UnRecognized('@')),
-      tokens = List(Token.LeftParen)
-    )
-    val actual = partition(scan(source))
+    val expected: List[LexicalElement] = List(UnRecognized('@'), Token.LeftParen)
+    val actual = scan(source)
     assertEquals(actual, expected, clue(source, expected, actual))
   }
 
+  test("locate tracks line numbers") {
+    val source = Source("@(\n\n@")
+    val expected =  List(Located(UnRecognized('@'), 1), Located(Token.LeftParen, 1), Located(WhitespaceChar.NewLine, 1), Located(WhitespaceChar.NewLine, 2), Located(UnRecognized('@'), 3))
+    val actual = locate(scan(source))
+    assertEquals(actual, expected, clue(source, expected, actual))
+  }
+
+
   test("EqualEqual is recognized") {
     val source = Source("==")
-    val expected = ScanResult(errors = Nil, tokens = List(Token.EqualEqual))
-    val actual = partition(scan(source))
+    val expected: List[LexicalElement] = List(Token.EqualEqual)
+    val actual = scan(source)
     assertEquals(actual, expected, clue(source, expected, actual))
   }
   test("Equal is recognized") {
     val source = Source("=")
-    val expected = ScanResult(errors = Nil, tokens = List(Token.Equal))
-    val actual = partition(scan(source))
+    val expected: List[LexicalElement] = List(Token.Equal)
+    val actual = scan(source)
     assertEquals(actual, expected, clue(source, expected, actual))
   }
 
   test("the longest lexeme wins: === is EqualEqual then Equal") {
     val source = Source("===")
-    val expected =
-      ScanResult(errors = Nil, tokens = List(Token.EqualEqual, Token.Equal))
-    val actual = partition(scan(source))
+    val expected: List[LexicalElement] = List(Token.EqualEqual, Token.Equal)
+    val actual = scan(source)
     assertEquals(actual, expected, clue(source, expected, actual))
   }
 
   test("the longest lexeme wins: !!=== is Bang, BangEqual, EqualEqual") {
     val source = Source("!!===")
-    val expected = ScanResult(errors = Nil, tokens = List(Token.Bang, Token.BangEqual, Token.EqualEqual))
-    val actual = partition(scan(source))
+    val expected: List[LexicalElement] = List(Token.Bang, Token.BangEqual, Token.EqualEqual)
+    val actual = scan(source)
     assertEquals(actual, expected, clue(source, expected, actual))
   }
 
   test("the longest lexeme wins: <<=>>= is Less, LessEqual, Greater, GreaterEqual") {
     val source = Source("<<=>>=")
-    val expected = ScanResult(errors = Nil, tokens = List(Token.Less, Token.LessEqual, Token.Greater, Token.GreaterEqual))
-    val actual = partition(scan(source))
+    val expected: List[LexicalElement] = List(Token.Less, Token.LessEqual, Token.Greater, Token.GreaterEqual)
+    val actual = scan(source)
     assertEquals(actual, expected, clue(source, expected, actual))
   }
 
@@ -183,8 +183,8 @@ class ScannerSuite extends munit.FunSuite:
 
   test("a long source does not overflow the stack") {
     // Plain recursion overflows the JVM stack at ~10,000 characters.
-    val tokens = partition(scan(Source("(" * 100_000))).tokens
-    assertEquals(tokens.size, 100_000)
+    val elements = scan(Source("(" * 100_000))
+    assertEquals(elements.size, 100_000)
   }
 
 

@@ -2,29 +2,45 @@ package codecrafters_interpreter
 
 class CodeCraftersOutputSuite extends munit.FunSuite:
 
-  test("render token") {
-    assertEquals(List.empty[Token].render, List("EOF  null"))
-    assertEquals(Token.LeftParen.render, "LEFT_PAREN ( null")
-    assertEquals(Token.RightParen.render, "RIGHT_PAREN ) null")
+  test("stdout: an empty source still prints EOF") {
+    assertEquals(stdoutLines(Nil), List("EOF  null"))
   }
 
-  test("render tokens: one line per token, in order, then EOF") {
+  test("stdout: one line per token, in order, then EOF") {
     assertEquals(
-      List(Token.LeftParen, Token.RightParen).render,
+      stdoutLines(List(Located(Token.LeftParen, 1), Located(Token.RightParen, 1))),
       List("LEFT_PAREN ( null", "RIGHT_PAREN ) null", "EOF  null")
     )
   }
 
-  test("render scan error") {
+  test("stdout: whitespace, comments and errors print nothing there") {
+    val elements = List(
+      Located(Token.LeftParen, 1),
+      Located(WhitespaceChar.NewLine, 1),
+      Located(Comment(" hi"), 2),
+      Located(UnRecognized('@'), 2)
+    )
+    assertEquals(stdoutLines(elements), List("LEFT_PAREN ( null", "EOF  null"))
+  }
+
+  test("stderr: one line per unrecognised character, with its line number") {
+    val elements = List(
+      Located(UnRecognized('@'), 1),
+      Located(Token.LeftParen, 1),
+      Located(UnRecognized('#'), 3)
+    )
     assertEquals(
-      UnRecognized('@').render,
-      """[line 1] Error: Unexpected character: @"""
+      stderrLines(elements),
+      List(
+        "[line 1] Error: Unexpected character: @",
+        "[line 3] Error: Unexpected character: #"
+      )
     )
   }
 
-  test("rendering many tokens does not overflow the stack") {
+  test("stdout: many tokens do not overflow the stack") {
     // Plain recursion overflows the JVM stack at ~10,000 tokens.
-    val lines = List.fill(100_000)(Token.LeftParen).render
+    val lines = stdoutLines(List.fill(100_000)(Located(Token.LeftParen, 1)))
     assertEquals(lines.size, 100_001)
     assertEquals(lines.last, "EOF  null")
   }

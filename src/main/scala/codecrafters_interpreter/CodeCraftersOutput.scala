@@ -16,23 +16,15 @@ private def name(t: Token): String = t match {
   case t               => toSnakeCase(t.toString)
 }
 
-extension (t: Token) def render: String = s"${name(t)} ${t.sourceText} $NoLiteral"
 
-extension (s: UnRecognized)
-  def render: String = s"[line 1] Error: Unexpected character: ${s.char}"
+def stdoutLines(xs: List[Located[LexicalElement]]): List[String] = xs.collect {
+  case Located(t: Token, line) => s"${name(t)} ${t.sourceText} $NoLiteral"
+} ::: List("EOF  null")
 
-extension (ts: List[Token])
+def stderrLines(xs: List[Located[LexicalElement]]): List[String] = xs.collect {
+  case Located(u: UnRecognized, line) =>
+    s"[line ${line}] Error: Unexpected character: ${u.char}"
+}
 
-  def render: List[String] =
 
-    @scala.annotation.tailrec
-    def loop(ts: List[Token], acc: List[String]): List[String] =
 
-      ts match {
-        case Nil       => "EOF  null" :: acc
-        case t :: rest => loop(rest, s"${name(t)} ${t.sourceText} $NoLiteral" :: acc)
-      }
-
-    val rez = loop(ts, Nil)
-
-    rez.reverse
