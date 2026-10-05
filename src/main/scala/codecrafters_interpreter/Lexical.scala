@@ -94,33 +94,33 @@ object Lexeme:
   extension (l: Lexeme) def chars: List[Char] = l.toList
 
 
-enum Token(val lexeme: Lexeme) extends Significant, FixedSpelling:
-  case LeftParen extends Token(Lexeme("("))
-  case LeftBrace extends Token(Lexeme("{"))
-  case RightParen extends Token(Lexeme(")"))
-  case RightBrace extends Token(Lexeme("}"))
-  case Comma extends Token(Lexeme(","))
-  case Dot extends Token(Lexeme("."))
-  case Minus extends Token(Lexeme("-"))
-  case Plus extends Token(Lexeme("+"))
-  case SemiColon extends Token(Lexeme(";"))
-  case Star extends Token(Lexeme("*"))
-  case Equal extends Token(Lexeme("="))
-  case EqualEqual extends Token(Lexeme("=="))
-  case Bang extends Token(Lexeme("!"))
-  case BangEqual extends Token(Lexeme("!="))
-  case Less extends Token(Lexeme("<"))
-  case LessEqual extends Token(Lexeme("<="))
-  case Greater extends Token(Lexeme(">"))
-  case GreaterEqual extends Token(Lexeme(">="))
-  case Slash extends Token(Lexeme("/"))
+enum Punctuator(val lexeme: Lexeme) extends Significant, FixedSpelling:
+  case LeftParen extends Punctuator(Lexeme("("))
+  case LeftBrace extends Punctuator(Lexeme("{"))
+  case RightParen extends Punctuator(Lexeme(")"))
+  case RightBrace extends Punctuator(Lexeme("}"))
+  case Comma extends Punctuator(Lexeme(","))
+  case Dot extends Punctuator(Lexeme("."))
+  case Minus extends Punctuator(Lexeme("-"))
+  case Plus extends Punctuator(Lexeme("+"))
+  case SemiColon extends Punctuator(Lexeme(";"))
+  case Star extends Punctuator(Lexeme("*"))
+  case Equal extends Punctuator(Lexeme("="))
+  case EqualEqual extends Punctuator(Lexeme("=="))
+  case Bang extends Punctuator(Lexeme("!"))
+  case BangEqual extends Punctuator(Lexeme("!="))
+  case Less extends Punctuator(Lexeme("<"))
+  case LessEqual extends Punctuator(Lexeme("<="))
+  case Greater extends Punctuator(Lexeme(">"))
+  case GreaterEqual extends Punctuator(Lexeme(">="))
+  case Slash extends Punctuator(Lexeme("/"))
 
   def spelling = this.lexeme.chars
 
 
-object Token:
+object Punctuator:
 
-  given Lexer[Token] = longestPrefixMatch(Token.values.toList)
+  given Lexer[Punctuator] = longestPrefixMatch(Punctuator.values.toList)
 
 def longestPrefixMatch[A <: FixedSpelling](candidates: List[A]): Lexer[A] = (input: Input) =>
   candidates.filter(c => input.startsWith(c.spelling)).maxByOption(_.spelling.size)

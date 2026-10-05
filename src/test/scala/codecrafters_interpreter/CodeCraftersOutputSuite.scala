@@ -8,14 +8,14 @@ class CodeCraftersOutputSuite extends munit.FunSuite:
 
   test("stdout: one line per token, in order, then EOF") {
     assertEquals(
-      stdoutLines(List(Located(Token.LeftParen, 1), Located(Token.RightParen, 1))),
+      stdoutLines(List(Located(Punctuator.LeftParen, 1), Located(Punctuator.RightParen, 1))),
       List("LEFT_PAREN ( null", "RIGHT_PAREN ) null", "EOF  null")
     )
   }
 
   test("stdout: whitespace, comments and errors print nothing there") {
     val elements = List(
-      Located(Token.LeftParen, 1),
+      Located(Punctuator.LeftParen, 1),
       Located(WhitespaceChar.NewLine, 1),
       Located(Comment(" hi"), 2),
       Located(UnRecognized('@'), 2)
@@ -26,7 +26,7 @@ class CodeCraftersOutputSuite extends munit.FunSuite:
   test("stderr: one line per unrecognised character, with its line number") {
     val elements = List(
       Located(UnRecognized('@'), 1),
-      Located(Token.LeftParen, 1),
+      Located(Punctuator.LeftParen, 1),
       Located(UnRecognized('#'), 3)
     )
     assertEquals(
@@ -40,7 +40,7 @@ class CodeCraftersOutputSuite extends munit.FunSuite:
 
   test("stdout: many tokens do not overflow the stack") {
     // Plain recursion overflows the JVM stack at ~10,000 tokens.
-    val lines = stdoutLines(List.fill(100_000)(Located(Token.LeftParen, 1)))
+    val lines = stdoutLines(List.fill(100_000)(Located(Punctuator.LeftParen, 1)))
     assertEquals(lines.size, 100_001)
     assertEquals(lines.last, "EOF  null")
   }

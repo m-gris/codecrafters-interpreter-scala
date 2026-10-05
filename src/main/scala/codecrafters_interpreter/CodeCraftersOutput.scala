@@ -11,14 +11,14 @@ private def toSnakeCase(s: String): String = s
   }
   .stripPrefix("_")
 
-private def name(t: Token): String = t match {
-  case Token.SemiColon => "SEMICOLON"
+private def name(t: Punctuator): String = t match {
+  case Punctuator.SemiColon => "SEMICOLON"
   case t               => toSnakeCase(t.toString)
 }
 
 
 def stdoutLines(xs: List[Located[LexicalElement]]): List[String] = xs.collect {
-  case Located(t: Token, line) => s"${name(t)} ${t.sourceText} $NoLiteral"
+  case Located(t: Punctuator, line) => s"${name(t)} ${t.sourceText} $NoLiteral"
 } ::: List("EOF  null")
 
 def stderrLines(xs: List[Located[LexicalElement]]): List[String] = xs.collect {

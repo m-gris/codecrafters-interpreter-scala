@@ -2,11 +2,11 @@ package codecrafters_interpreter
 
 
 private val leafLexers: List[Lexer[Recognized]] =
-  List(summon[Lexer[Comment]], summon[Lexer[Token]], summon[Lexer[WhitespaceChar]])
+  List(summon[Lexer[Comment]], summon[Lexer[Punctuator]], summon[Lexer[WhitespaceChar]])
 
 // Every value with a fixed spelling. A new FixedSpelling enum must be added here.
 private val fixedSpellings: List[FixedSpelling] =
-  Token.values.toList ++ WhitespaceChar.values.toList
+  Punctuator.values.toList ++ WhitespaceChar.values.toList
 
 // The characters generated inputs are drawn from: every character some lexer knows (taken from
 // the spellings, so new tokens are included automatically; this also covers `//` via Slash),
@@ -36,14 +36,14 @@ class ScannerSuite extends munit.FunSuite:
 
   test("two single-char tokens side by side are both kept") {
     val source = Source("()")
-    val expected: List[LexicalElement] = List(Token.LeftParen, Token.RightParen)
+    val expected: List[LexicalElement] = List(Punctuator.LeftParen, Punctuator.RightParen)
     val actual = scan(source)
     assertEquals(actual, expected, clue(source, expected, actual))
   }
 
   test("a multi-token source yields its tokens in source order") {
     val source = Source("())")
-    val expected: List[LexicalElement] = List(Token.LeftParen, Token.RightParen, Token.RightParen)
+    val expected: List[LexicalElement] = List(Punctuator.LeftParen, Punctuator.RightParen, Punctuator.RightParen)
     val actual = scan(source)
     assertEquals(actual, expected, clue(source, expected, actual))
   }
@@ -57,14 +57,14 @@ class ScannerSuite extends munit.FunSuite:
 
   test("a token after an unrecognised character is still scanned") {
     val source = Source("@(")
-    val expected: List[LexicalElement] = List(UnRecognized('@'), Token.LeftParen)
+    val expected: List[LexicalElement] = List(UnRecognized('@'), Punctuator.LeftParen)
     val actual = scan(source)
     assertEquals(actual, expected, clue(source, expected, actual))
   }
 
   test("locate tracks line numbers") {
     val source = Source("@(\n\n@")
-    val expected =  List(Located(UnRecognized('@'), 1), Located(Token.LeftParen, 1), Located(WhitespaceChar.NewLine, 1), Located(WhitespaceChar.NewLine, 2), Located(UnRecognized('@'), 3))
+    val expected =  List(Located(UnRecognized('@'), 1), Located(Punctuator.LeftParen, 1), Located(WhitespaceChar.NewLine, 1), Located(WhitespaceChar.NewLine, 2), Located(UnRecognized('@'), 3))
     val actual = locate(scan(source))
     assertEquals(actual, expected, clue(source, expected, actual))
   }
@@ -72,55 +72,55 @@ class ScannerSuite extends munit.FunSuite:
 
   test("EqualEqual is recognized") {
     val source = Source("==")
-    val expected: List[LexicalElement] = List(Token.EqualEqual)
+    val expected: List[LexicalElement] = List(Punctuator.EqualEqual)
     val actual = scan(source)
     assertEquals(actual, expected, clue(source, expected, actual))
   }
   test("Equal is recognized") {
     val source = Source("=")
-    val expected: List[LexicalElement] = List(Token.Equal)
+    val expected: List[LexicalElement] = List(Punctuator.Equal)
     val actual = scan(source)
     assertEquals(actual, expected, clue(source, expected, actual))
   }
 
   test("the longest lexeme wins: === is EqualEqual then Equal") {
     val source = Source("===")
-    val expected: List[LexicalElement] = List(Token.EqualEqual, Token.Equal)
+    val expected: List[LexicalElement] = List(Punctuator.EqualEqual, Punctuator.Equal)
     val actual = scan(source)
     assertEquals(actual, expected, clue(source, expected, actual))
   }
 
   test("the longest lexeme wins: !!=== is Bang, BangEqual, EqualEqual") {
     val source = Source("!!===")
-    val expected: List[LexicalElement] = List(Token.Bang, Token.BangEqual, Token.EqualEqual)
+    val expected: List[LexicalElement] = List(Punctuator.Bang, Punctuator.BangEqual, Punctuator.EqualEqual)
     val actual = scan(source)
     assertEquals(actual, expected, clue(source, expected, actual))
   }
 
   test("the longest lexeme wins: <<=>>= is Less, LessEqual, Greater, GreaterEqual") {
     val source = Source("<<=>>=")
-    val expected: List[LexicalElement] = List(Token.Less, Token.LessEqual, Token.Greater, Token.GreaterEqual)
+    val expected: List[LexicalElement] = List(Punctuator.Less, Punctuator.LessEqual, Punctuator.Greater, Punctuator.GreaterEqual)
     val actual = scan(source)
     assertEquals(actual, expected, clue(source, expected, actual))
   }
 
   test("a comment runs to the end of the line, whatever it contains") {
     val source = Source("(///Unicode:£§᯽☺♣)")
-    val expected: List[LexicalElement] = List(Token.LeftParen, Comment("/Unicode:£§᯽☺♣)"))
+    val expected: List[LexicalElement] = List(Punctuator.LeftParen, Comment("/Unicode:£§᯽☺♣)"))
     assertEquals(scan(source), expected)
   }
 
   test("scanning resumes at the newline that ends a comment") {
     val source = Source("// hi\n(")
-    val expected: List[LexicalElement] = List(Comment(" hi"), WhitespaceChar.NewLine, Token.LeftParen)
+    val expected: List[LexicalElement] = List(Comment(" hi"), WhitespaceChar.NewLine, Punctuator.LeftParen)
     assertEquals(scan(source), expected)
   }
 
   test("each whitespace character becomes an element, in source order") {
     val source = Source(" (\t)\r\n")
     val expected: List[LexicalElement] = List(
-      WhitespaceChar.Space, Token.LeftParen,
-      WhitespaceChar.Tab, Token.RightParen,
+      WhitespaceChar.Space, Punctuator.LeftParen,
+      WhitespaceChar.Tab, Punctuator.RightParen,
       WhitespaceChar.CarriageReturn, WhitespaceChar.NewLine
     )
     assertEquals(scan(source), expected)
@@ -128,7 +128,7 @@ class ScannerSuite extends munit.FunSuite:
 
   test("whitespace splits a two-character operator") {
     val source = Source("= =")
-    val expected: List[LexicalElement] = List(Token.Equal, WhitespaceChar.Space, Token.Equal)
+    val expected: List[LexicalElement] = List(Punctuator.Equal, WhitespaceChar.Space, Punctuator.Equal)
     assertEquals(scan(source), expected)
   }
 
