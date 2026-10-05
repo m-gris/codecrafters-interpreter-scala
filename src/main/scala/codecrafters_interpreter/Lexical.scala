@@ -14,7 +14,7 @@ sealed trait FixedSpelling:
   def sourceText: String = spelling.mkString
 
 sealed trait Recognized extends LexicalElement derives Lexer
-sealed trait Significant extends Recognized derives Lexer
+sealed trait Token extends Recognized derives Lexer
 sealed trait InSignificant extends Recognized derives Lexer
 case class Comment(content: String) extends InSignificant:
   val sourceText: String = Comment.delimiter.mkString ++ this.content
@@ -94,7 +94,7 @@ object Lexeme:
   extension (l: Lexeme) def chars: List[Char] = l.toList
 
 
-enum Punctuator(val lexeme: Lexeme) extends Significant, FixedSpelling:
+enum Punctuator(val lexeme: Lexeme) extends Token, FixedSpelling:
   case LeftParen extends Punctuator(Lexeme("("))
   case LeftBrace extends Punctuator(Lexeme("{"))
   case RightParen extends Punctuator(Lexeme(")"))
