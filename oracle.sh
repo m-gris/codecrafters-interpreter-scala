@@ -43,11 +43,23 @@ for slug in "$@"; do
   cases="$cases{\"slug\":\"$slug\",\"tester_log_prefix\":\"$slug\",\"title\":\"$title\"}"
 done
 
+# One run at a time: every run rebuilds the same jar and writes the same test.lox, so two
+# overlapping runs can make one execute a half-written jar ("Invalid or corrupt jarfile").
+# mkdir is atomic: it either creates the lock or fails because another run holds it.
+LOCK="/tmp/codecrafters-interpreter-oracle.lock"
+mkdir "$LOCK" 2>/dev/null || {
+  echo "another oracle run is in progress (if none is, a killed run left the lock: rmdir $LOCK)" >&2
+  exit 2
+}
+trap 'rmdir "$LOCK"' EXIT
+trap 'exit 130' INT TERM
+
 # Build once here, not in your_program.sh: the tester calls that script for every
 # test case, and repackaging each time (~3s, more under load) hits its 10s timeout.
 "$REPO/.codecrafters/compile.sh"
 
+# Not exec'd: the shell must outlive the tester so the EXIT trap releases the lock.
 CODECRAFTERS_REPOSITORY_DIR="$REPO" \
 CODECRAFTERS_SUBMISSION_DIR="$REPO" \
 CODECRAFTERS_TEST_CASES_JSON="[$cases]" \
-exec "$TESTER"
+"$TESTER"
