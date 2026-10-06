@@ -10,8 +10,8 @@ sealed trait LexicalElement:
   def sourceText: String
 
 sealed trait FixedSpelling:
-  def spelling: List[Char]
-  def sourceText: String = spelling.mkString
+  def spelling: Spelling
+  def sourceText: String = spelling.text
 
 sealed trait Recognized extends LexicalElement derives Lexer
 sealed trait Token extends Recognized derives Lexer
@@ -56,14 +56,15 @@ object Comment:
 
 
 
-enum WhitespaceChar(val char: Char) extends InSignificant, FixedSpelling:
+enum WhitespaceChar(val spelling: Spelling) extends InSignificant, FixedSpelling:
 
-  case Space extends WhitespaceChar(' ')
-  case NewLine extends WhitespaceChar('\n')
-  case Tab extends WhitespaceChar('\t')
-  case CarriageReturn extends WhitespaceChar('\r')
+  case Space extends WhitespaceChar(Spelling(" "))
+  case NewLine extends WhitespaceChar(Spelling("\n"))
+  case Tab extends WhitespaceChar(Spelling("\t"))
+  case CarriageReturn extends WhitespaceChar(Spelling("\r"))
 
-  def spelling = List(this.char)
+  // head is safe: Spelling rejects an empty literal at compile time.
+  def char: Char = spelling.characters.head
 
 object WhitespaceChar:
   given Lexer[WhitespaceChar] = longestPrefixMatch(WhitespaceChar.values.toList)
@@ -93,10 +94,13 @@ object Spelling:
   // everywhere while consuming nothing, and scanning would never end.
   (using (Length[S] >= 1) =:= true, (Length[S] <= 2) =:= true): Spelling = s
 
-  extension (l: Spelling) def chars: List[Char] = l.toList
+  extension (l: Spelling)
+    // Not `chars`: where Spelling is transparent, String's own chars() (an IntStream) would win.
+    def characters: List[Char] = l.toList
+    def text: String = l
 
 
-enum Punctuator(val lexeme: Spelling) extends Token, FixedSpelling:
+enum Punctuator(val spelling: Spelling) extends Token, FixedSpelling:
   case LeftParen extends Punctuator(Spelling("("))
   case LeftBrace extends Punctuator(Spelling("{"))
   case RightParen extends Punctuator(Spelling(")"))
@@ -117,16 +121,14 @@ enum Punctuator(val lexeme: Spelling) extends Token, FixedSpelling:
   case GreaterEqual extends Punctuator(Spelling(">="))
   case Slash extends Punctuator(Spelling("/"))
 
-  def spelling = this.lexeme.chars
-
 
 object Punctuator:
 
   given Lexer[Punctuator] = longestPrefixMatch(Punctuator.values.toList)
 
 def longestPrefixMatch[A <: FixedSpelling](candidates: List[A]): Lexer[A] = (input: Input) =>
-  candidates.filter(c => input.startsWith(c.spelling)).maxByOption(_.spelling.size)
-    .map(winner => (winner,winner.spelling,input.drop(winner.spelling.size)))
+  candidates.filter(c => input.startsWith(c.spelling.characters)).maxByOption(_.spelling.characters.size)
+    .map(winner => (winner,winner.spelling.characters,input.drop(winner.spelling.characters.size)))
 
 
 

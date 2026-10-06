@@ -12,7 +12,7 @@ private val fixedSpellings: List[FixedSpelling] =
 // the spellings, so new tokens are included automatically; this also covers `//` via Slash),
 // plus characters no lexer knows, so unrecognised input and its boundaries get exercised too.
 private val alphabet: List[Char] =
-  fixedSpellings.flatMap(_.spelling).distinct ++ List('@', 'a')
+  fixedSpellings.flatMap(_.spelling.characters).distinct ++ List('@', 'a')
 
 class ScannerSuite extends munit.FunSuite:
 
@@ -189,7 +189,7 @@ class ScannerSuite extends munit.FunSuite:
     // Two matches of the same length at the same spot have the same spelling, so a duplicate
     // spelling is the only way longest match can tie and become order-dependent.
     val duplicates = fixedSpellings.groupBy(_.spelling).filter(_._2.size > 1)
-    assertEquals(duplicates, Map.empty[List[Char], List[FixedSpelling]])
+    assertEquals(duplicates, Map.empty[Spelling, List[FixedSpelling]])
   }
 
   test("a long source does not overflow the stack") {
@@ -263,7 +263,7 @@ class ScannerProperties extends munit.ScalaCheckSuite:
     forAll(sources) { text =>
       neighbours(scan(Source(text))).foreach { (e, next) =>
         val both = (e.sourceText ++ next.sourceText).toList
-        val longer = fixedSpellings.filter(f => f.spelling.size > e.sourceText.size && both.startsWith(f.spelling))
+        val longer = fixedSpellings.filter(f => f.spelling.characters.size > e.sourceText.size && both.startsWith(f.spelling.characters))
         assertEquals(longer, Nil, s"$e could have been extended into $next")
         if both.startsWith(Comment.delimiter) then
           assert(e.isInstanceOf[Comment], s"$e, $next should have started a comment")
