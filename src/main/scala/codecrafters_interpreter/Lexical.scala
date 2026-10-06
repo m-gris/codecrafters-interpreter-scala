@@ -3,7 +3,7 @@ package codecrafters_interpreter
 import scala.deriving.Mirror
 import scala.compiletime.summonAll
 import scala.compiletime.ops.string.Length
-import scala.compiletime.ops.int.<=
+import scala.compiletime.ops.int.{<=, >=}
 
 
 sealed trait LexicalElement:
@@ -89,7 +89,9 @@ object Spelling:
   // A proof the compiler must find: Length[S] <= 2 reduces to the type
   // true or false, and =:= only has an instance when both sides are the
   // same type. No proof, no compile: Spelling("...") is rejected.
-  (using (Length[S] <= 2) =:= true): Spelling = s
+  // Likewise Spelling("") is rejected: an empty spelling would match
+  // everywhere while consuming nothing, and scanning would never end.
+  (using (Length[S] >= 1) =:= true, (Length[S] <= 2) =:= true): Spelling = s
 
   extension (l: Spelling) def chars: List[Char] = l.toList
 

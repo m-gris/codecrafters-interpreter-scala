@@ -148,6 +148,17 @@ class ScannerSuite extends munit.FunSuite:
     )
   }
 
+  test("an empty spelling does not compile") {
+    val errors = compileErrors("""Spelling("")""")
+    // Assert the length check's own message, so an unrelated error can't pass for it.
+    assert(
+      errors.contains(
+        """Cannot prove that scala.compiletime.ops.string.Length[("" : String)] >= (1 : Int)"""
+      ),
+      errors
+    )
+  }
+
   test("every lexer splits its input losslessly and makes progress") {
     val samples = List("", "(", "()", "==", "=(", "!=!", "<=>", "/", "//", "// hi\n(", " x", "\t\r\n", "@#")
     for
