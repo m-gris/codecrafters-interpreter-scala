@@ -159,16 +159,17 @@ class ScannerSuite extends munit.FunSuite:
     )
   }
 
-  test("every lexer splits its input losslessly and makes progress") {
+  test("every lexer splits its input losslessly, makes progress, and its element matches its lexeme") {
     val samples = List("", "(", "()", "==", "=(", "!=!", "<=>", "/", "//", "// hi\n(", " x", "\t\r\n", "@#")
     for
       lexer <- leafLexers
       sample     <- samples
       src         = sample.toList
-      (_, lexeme, rest) <- lexer.lex(src)
+      (element, lexeme, rest) <- lexer.lex(src)
     do
       assertEquals(lexeme ++ rest, src, s"lossless split failed on \"$sample\"")
       assert(lexeme.nonEmpty, s"no progress on \"$sample\"")
+      assertEquals(element.sourceText, lexeme.mkString, s"element and lexeme disagree on \"$sample\"")
   }
 
   test("the order of lexer doesn't change what the longest match finds") {
