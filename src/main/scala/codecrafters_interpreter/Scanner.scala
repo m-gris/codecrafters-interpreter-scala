@@ -14,7 +14,7 @@ def scan(source: Source): List[LexicalElement] =
       case Nil => acc
 
       // Every kind of input element is tried; the longest match wins
-      // so the order of the recognisers doesn't matter.
+      // so the order of the lexers doesn't matter.
       case Recognized.LongestMatch(element, lexeme, rest) => loop(rest, element :: acc)
 
       // Catch-all, kept as a plain list pattern on purpose: with Nil above, the compiler can prove
