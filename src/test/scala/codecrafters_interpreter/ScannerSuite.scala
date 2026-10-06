@@ -9,7 +9,7 @@ private val fixedSpellings: List[FixedSpelling] =
   Punctuator.values.toList ++ WhitespaceChar.values.toList
 
 // The characters generated inputs are drawn from: every character some lexer knows (taken from
-// the spellings, so new tokens are included automatically; this also covers `//` via Slash),
+// the spellings, so new fixed spellings are included automatically; this also covers `//` via Slash),
 // plus characters no lexer knows, so unrecognised input and its boundaries get exercised too.
 private val alphabet: List[Char] =
   fixedSpellings.flatMap(_.spelling.characters).distinct ++ List('@', 'a')
