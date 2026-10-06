@@ -11,7 +11,9 @@ sealed trait LexicalElement:
 
 sealed trait FixedSpelling:
   def spelling: Spelling
-  def sourceText: String = spelling.text
+  // A fixed spelling is the pattern, and every lexeme matching it is that same text, so the
+  // source text is derived from the spelling, never stored. final: no element can say otherwise.
+  final def sourceText: String = spelling.text
 
 sealed trait Recognized extends LexicalElement derives Lexer
 sealed trait Token extends Recognized derives Lexer
