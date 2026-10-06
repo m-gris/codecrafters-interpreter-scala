@@ -13,6 +13,36 @@ class CodeCraftersOutputSuite extends munit.FunSuite:
     )
   }
 
+  test("stdout: every punctuator prints the token type name jlox uses") {
+    // The names are derived from the Scala case names, so renaming a case would change the
+    // output silently; this table pins them.
+    val expected: Map[Punctuator, String] = Map(
+      Punctuator.LeftParen -> "LEFT_PAREN",
+      Punctuator.RightParen -> "RIGHT_PAREN",
+      Punctuator.LeftBrace -> "LEFT_BRACE",
+      Punctuator.RightBrace -> "RIGHT_BRACE",
+      Punctuator.Comma -> "COMMA",
+      Punctuator.Dot -> "DOT",
+      Punctuator.Minus -> "MINUS",
+      Punctuator.Plus -> "PLUS",
+      Punctuator.SemiColon -> "SEMICOLON",
+      Punctuator.Star -> "STAR",
+      Punctuator.Equal -> "EQUAL",
+      Punctuator.EqualEqual -> "EQUAL_EQUAL",
+      Punctuator.Bang -> "BANG",
+      Punctuator.BangEqual -> "BANG_EQUAL",
+      Punctuator.Less -> "LESS",
+      Punctuator.LessEqual -> "LESS_EQUAL",
+      Punctuator.Greater -> "GREATER",
+      Punctuator.GreaterEqual -> "GREATER_EQUAL",
+      Punctuator.Slash -> "SLASH"
+    )
+    assertEquals(expected.keySet, Punctuator.values.toSet, "the table must cover every punctuator")
+    expected.foreach { (p, name) =>
+      assertEquals(stdoutLines(List(Located(p, 1))).head, s"$name ${p.sourceText} null")
+    }
+  }
+
   test("stdout: whitespace, comments and errors print nothing there") {
     val elements = List(
       Located(Punctuator.LeftParen, 1),
