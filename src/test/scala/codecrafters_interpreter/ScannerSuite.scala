@@ -186,8 +186,10 @@ class ScannerSuite extends munit.FunSuite:
   }
 
   test("no two fixed-spelling elements share a spelling, within or across enums") {
-    // Two matches of the same length at the same spot have the same spelling, so a duplicate
-    // spelling is the only way longest match can tie and become order-dependent.
+    // Two fixed spellings matching at the same spot with the same length are the same spelling,
+    // so a duplicate is the only way two of them can tie and make longest match order-dependent.
+    // A tie with a variable-length lexer (e.g. a punctuator `//` against an empty comment) is
+    // caught by the lexer-order test instead.
     val duplicates = fixedSpellings.groupBy(_.spelling).filter(_._2.size > 1)
     assertEquals(duplicates, Map.empty[Spelling, List[FixedSpelling]])
   }
