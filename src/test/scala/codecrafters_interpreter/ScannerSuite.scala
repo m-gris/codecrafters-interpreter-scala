@@ -165,10 +165,10 @@ class ScannerSuite extends munit.FunSuite:
       lexer <- leafLexers
       sample     <- samples
       src         = sample.toList
-      (_, consumed, rest) <- lexer.lex(src)
+      (_, lexeme, rest) <- lexer.lex(src)
     do
-      assertEquals(consumed ++ rest, src, s"lossless split failed on \"$sample\"")
-      assert(consumed.nonEmpty, s"no progress on \"$sample\"")
+      assertEquals(lexeme ++ rest, src, s"lossless split failed on \"$sample\"")
+      assert(lexeme.nonEmpty, s"no progress on \"$sample\"")
   }
 
   test("the order of lexer doesn't change what the longest match finds") {

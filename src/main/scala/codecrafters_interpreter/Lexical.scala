@@ -23,13 +23,13 @@ case class UnRecognized(char: Char) extends LexicalElement:
   val sourceText: String = char.toString
 
 type Input = List[Char]
-type Consumed = List[Char]
+type Lexeme = List[Char]
 type Remainder = List[Char]
 
-// A Lexer[A] is a function Input => Option[(A, Consumed, Remainder)]: the A it recognised, what that consumed, what's left.
+// A Lexer[A] is a function Input => Option[(A, Lexeme, Remainder)]: the A it recognised, its lexeme (the characters it consumed), what's left.
 // Kept as a trait with a named method rather than extending Function1, whose andThen/compose would read as lexer combinators.
 trait Lexer[+A]:
-  def lex(src: Input): Option[(A, Consumed, Remainder)]
+  def lex(src: Input): Option[(A, Lexeme, Remainder)]
 
 object Lexer:
   // Called by `derives Lexer`: a sealed type's lexer is the longest match among its children's lexers.
@@ -47,7 +47,7 @@ object Comment:
 
   given Lexer[Comment] with
 
-    def lex(src: Input): Option[(Comment, Consumed, Remainder)] =
+    def lex(src: Input): Option[(Comment, Lexeme, Remainder)] =
       if src.startsWith(delimiter) then
         val rest = src.drop(delimiter.size)
         val (content, restExComment) = rest.span(_ != terminator.char)
@@ -78,7 +78,7 @@ def longest[A](lexers: List[Lexer[A]]): Lexer[A] =
 object Recognized:
 
   object LongestMatch:
-    def unapply(src: Input): Option[(LexicalElement, Consumed, Remainder)] = summon[Lexer[Recognized]].lex(src)
+    def unapply(src: Input): Option[(LexicalElement, Lexeme, Remainder)] = summon[Lexer[Recognized]].lex(src)
 
 opaque type Spelling = String
 

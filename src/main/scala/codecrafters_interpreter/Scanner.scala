@@ -15,7 +15,7 @@ def scan(source: Source): List[LexicalElement] =
 
       // Every kind of input element is tried; the longest match wins
       // so the order of the recognisers doesn't matter.
-      case Recognized.LongestMatch(element, consumed, rest) => loop(rest, element :: acc)
+      case Recognized.LongestMatch(element, lexeme, rest) => loop(rest, element :: acc)
 
       // Catch-all, kept as a plain list pattern on purpose: with Nil above, the compiler can prove
       // the match is exhaustive. An extractor here would hide that, since it may return None.
