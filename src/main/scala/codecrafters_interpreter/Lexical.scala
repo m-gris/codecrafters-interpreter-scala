@@ -131,7 +131,3 @@ object Punctuator:
 def longestPrefixMatch[A <: FixedSpelling](candidates: List[A]): Lexer[A] = (input: Input) =>
   candidates.filter(c => input.startsWith(c.spelling.characters)).maxByOption(_.spelling.characters.size)
     .map(winner => (winner,winner.spelling.characters,input.drop(winner.spelling.characters.size)))
-
-
-
-// val ALPHABET: List[Char]
