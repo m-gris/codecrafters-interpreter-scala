@@ -226,6 +226,16 @@ class ScannerProperties extends munit.ScalaCheckSuite:
     }
   }
 
+  // leafLexers is kept by hand, and two tests above only cover what it lists. This compares it with
+  // the lexer scan really uses, derived from the type hierarchy. It only notices a missing lexer
+  // if the generated sources contain something that lexer matches.
+  property("leafLexers matches the lexer scan uses") {
+    forAll(sources) { text =>
+      val input = text.toList
+      assertEquals(longest(leafLexers).lex(input), summon[Lexer[Recognized]].lex(input))
+    }
+  }
+
   // Sources that start at a line boundary: every variable-length element (today, only Comment)
   // stops at its terminator, and no fixed spelling contains it, so nothing can cross the boundary.
   private val sourcesAfterNewline: Gen[String] = sources.map(s => Comment.terminator.char +: s)
