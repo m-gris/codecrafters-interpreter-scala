@@ -242,7 +242,9 @@ class ScannerProperties extends munit.ScalaCheckSuite:
   private def neighbours(elements: List[LexicalElement]): List[(LexicalElement, LexicalElement)] =
     elements.zip(elements.drop(1))
 
-  property("invariant: no element has empty source text (every step makes progress)") {
+  // Progress itself is checked per lexer above: a step that consumed nothing would make scan loop
+  // forever, so this property could never get to report it.
+  property("invariant: no element has empty source text") {
     forAll(sources) { text =>
       scan(Source(text)).foreach(e => assert(e.sourceText.nonEmpty, s"$e has empty source text"))
     }
