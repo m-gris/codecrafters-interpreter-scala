@@ -11,10 +11,7 @@ private def toSnakeCase(s: String): String = s
   }
   .stripPrefix("_")
 
-private def name(t: Punctuator): String = t match {
-  case Punctuator.SemiColon => "SEMICOLON"
-  case t               => toSnakeCase(t.toString)
-}
+private def name(t: Punctuator): String = toSnakeCase(t.toString)
 
 
 def stdoutLines(xs: List[Located[LexicalElement]]): List[String] = xs.collect {

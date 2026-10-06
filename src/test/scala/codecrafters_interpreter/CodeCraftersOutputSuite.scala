@@ -25,7 +25,7 @@ class CodeCraftersOutputSuite extends munit.FunSuite:
       Punctuator.Dot -> "DOT",
       Punctuator.Minus -> "MINUS",
       Punctuator.Plus -> "PLUS",
-      Punctuator.SemiColon -> "SEMICOLON",
+      Punctuator.Semicolon -> "SEMICOLON",
       Punctuator.Star -> "STAR",
       Punctuator.Equal -> "EQUAL",
       Punctuator.EqualEqual -> "EQUAL_EQUAL",

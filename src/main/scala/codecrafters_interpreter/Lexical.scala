@@ -111,7 +111,7 @@ enum Punctuator(val spelling: Spelling) extends Token, FixedSpelling:
   case Dot extends Punctuator(Spelling("."))
   case Minus extends Punctuator(Spelling("-"))
   case Plus extends Punctuator(Spelling("+"))
-  case SemiColon extends Punctuator(Spelling(";"))
+  case Semicolon extends Punctuator(Spelling(";"))
   case Star extends Punctuator(Spelling("*"))
   case Equal extends Punctuator(Spelling("="))
   case EqualEqual extends Punctuator(Spelling("=="))
