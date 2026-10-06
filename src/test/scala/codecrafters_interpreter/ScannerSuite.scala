@@ -247,6 +247,18 @@ class ScannerProperties extends munit.ScalaCheckSuite:
     }
   }
 
+  // Stated from the source text, not from which elements are NewLines: an element whose own text
+  // contains a newline (e.g. a multi-line string) must still move the elements after it down.
+  property("locate: an element's line is 1 + the newlines in the source text before it") {
+    forAll(sources) { text =>
+      val located = locate(scan(Source(text)))
+      val textBefore = located.map(_.element.sourceText).scanLeft("")(_ ++ _)
+      located.zip(textBefore).foreach { (l, before) =>
+        assertEquals(l.lineNumber, 1 + before.count(_ == '\n'), s"$l")
+      }
+    }
+  }
+
   // Invariants: properties of scan's output alone, whatever the source.
 
   // Each element next to the one after it, e.g. (LeftParen, Equal), (Equal, NewLine).
