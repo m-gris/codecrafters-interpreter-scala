@@ -79,41 +79,41 @@ object Recognized:
   object LongestMatch:
     def unapply(src: Input): Option[(LexicalElement, Consumed, Remainder)] = summon[Lexer[Recognized]].lex(src)
 
-opaque type Lexeme = String
+opaque type Spelling = String
 
-object Lexeme:
+object Spelling:
   def apply
   // Singleton: S is the literal's own type ("=="), not String.
   // Only a literal type has a length the compiler can compute.
   [S <: String & Singleton](s: S)
   // A proof the compiler must find: Length[S] <= 2 reduces to the type
   // true or false, and =:= only has an instance when both sides are the
-  // same type. No proof, no compile: Lexeme("...") is rejected.
-  (using (Length[S] <= 2) =:= true): Lexeme = s
+  // same type. No proof, no compile: Spelling("...") is rejected.
+  (using (Length[S] <= 2) =:= true): Spelling = s
 
-  extension (l: Lexeme) def chars: List[Char] = l.toList
+  extension (l: Spelling) def chars: List[Char] = l.toList
 
 
-enum Punctuator(val lexeme: Lexeme) extends Token, FixedSpelling:
-  case LeftParen extends Punctuator(Lexeme("("))
-  case LeftBrace extends Punctuator(Lexeme("{"))
-  case RightParen extends Punctuator(Lexeme(")"))
-  case RightBrace extends Punctuator(Lexeme("}"))
-  case Comma extends Punctuator(Lexeme(","))
-  case Dot extends Punctuator(Lexeme("."))
-  case Minus extends Punctuator(Lexeme("-"))
-  case Plus extends Punctuator(Lexeme("+"))
-  case SemiColon extends Punctuator(Lexeme(";"))
-  case Star extends Punctuator(Lexeme("*"))
-  case Equal extends Punctuator(Lexeme("="))
-  case EqualEqual extends Punctuator(Lexeme("=="))
-  case Bang extends Punctuator(Lexeme("!"))
-  case BangEqual extends Punctuator(Lexeme("!="))
-  case Less extends Punctuator(Lexeme("<"))
-  case LessEqual extends Punctuator(Lexeme("<="))
-  case Greater extends Punctuator(Lexeme(">"))
-  case GreaterEqual extends Punctuator(Lexeme(">="))
-  case Slash extends Punctuator(Lexeme("/"))
+enum Punctuator(val lexeme: Spelling) extends Token, FixedSpelling:
+  case LeftParen extends Punctuator(Spelling("("))
+  case LeftBrace extends Punctuator(Spelling("{"))
+  case RightParen extends Punctuator(Spelling(")"))
+  case RightBrace extends Punctuator(Spelling("}"))
+  case Comma extends Punctuator(Spelling(","))
+  case Dot extends Punctuator(Spelling("."))
+  case Minus extends Punctuator(Spelling("-"))
+  case Plus extends Punctuator(Spelling("+"))
+  case SemiColon extends Punctuator(Spelling(";"))
+  case Star extends Punctuator(Spelling("*"))
+  case Equal extends Punctuator(Spelling("="))
+  case EqualEqual extends Punctuator(Spelling("=="))
+  case Bang extends Punctuator(Spelling("!"))
+  case BangEqual extends Punctuator(Spelling("!="))
+  case Less extends Punctuator(Spelling("<"))
+  case LessEqual extends Punctuator(Spelling("<="))
+  case Greater extends Punctuator(Spelling(">"))
+  case GreaterEqual extends Punctuator(Spelling(">="))
+  case Slash extends Punctuator(Spelling("/"))
 
   def spelling = this.lexeme.chars
 

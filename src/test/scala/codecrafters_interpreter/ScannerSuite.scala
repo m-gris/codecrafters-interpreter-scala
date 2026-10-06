@@ -132,13 +132,13 @@ class ScannerSuite extends munit.FunSuite:
     assertEquals(scan(source), expected)
   }
 
-  test("a lexeme of one or two characters compiles") {
-    assertNoDiff(compileErrors("""Lexeme("=")"""), "")
-    assertNoDiff(compileErrors("""Lexeme("==")"""), "")
+  test("a spelling of one or two characters compiles") {
+    assertNoDiff(compileErrors("""Spelling("=")"""), "")
+    assertNoDiff(compileErrors("""Spelling("==")"""), "")
   }
 
-  test("a lexeme of three characters does not compile") {
-    val errors = compileErrors("""Lexeme("...")""")
+  test("a spelling of three characters does not compile") {
+    val errors = compileErrors("""Spelling("...")""")
     // Assert the length check's own message, so an unrelated error can't pass for it.
     assert(
       errors.contains(
