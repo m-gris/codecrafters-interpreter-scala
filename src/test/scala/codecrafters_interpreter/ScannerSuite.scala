@@ -48,7 +48,7 @@ class ScannerSuite extends munit.FunSuite:
     assertEquals(actual, expected, clue(source, expected, actual))
   }
 
-  test("an unrecognised character is reported and does not stop scanning") {
+  test("an unrecognised character becomes an UnRecognized element") {
     val source = Source("@")
     val expected: List[LexicalElement] = List(UnRecognized('@'))
     val actual = scan(source)
