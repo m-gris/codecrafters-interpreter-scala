@@ -9,20 +9,30 @@ import scala.compiletime.ops.int.{<=, >=}
 sealed trait LexicalElement:
   def sourceText: String
 
+opaque type Spelling = String
+
+object Spelling:
+  def apply
+  // Singleton: S is the literal's own type ("=="), not String.
+  // Only a literal type has a length the compiler can compute.
+  [S <: String & Singleton](s: S)
+  // A proof the compiler must find: Length[S] <= 2 reduces to the type
+  // true or false, and =:= only has an instance when both sides are the
+  // same type. No proof, no compile: Spelling("...") is rejected.
+  // Likewise Spelling("") is rejected: an empty spelling would match
+  // everywhere while consuming nothing, and scanning would never end.
+  (using (Length[S] >= 1) =:= true, (Length[S] <= 2) =:= true): Spelling = s
+
+  extension (l: Spelling)
+    // Not `chars`: where Spelling is transparent, String's own chars() (an IntStream) would win.
+    def characters: List[Char] = l.toList
+    def text: String = l
+
 sealed trait FixedSpelling:
   def spelling: Spelling
   // A fixed spelling is the pattern, and every lexeme matching it is that same text, so the
   // source text is derived from the spelling, never stored. final: no element can say otherwise.
   final def sourceText: String = spelling.text
-
-sealed trait Recognized extends LexicalElement derives Lexer
-sealed trait Token extends Recognized derives Lexer
-sealed trait InSignificant extends Recognized derives Lexer
-case class Comment(content: String) extends InSignificant:
-  val sourceText: String = Comment.delimiter.mkString ++ this.content
-
-case class UnRecognized(char: Char) extends LexicalElement:
-  val sourceText: String = char.toString
 
 type Input = List[Char]
 type Lexeme = List[Char]
@@ -40,6 +50,35 @@ object Lexer:
     // The Mirror doesn't expose that relation to the type checker, so it can't prove it here.
     val lexers: List[Lexer[A]] = summonAll[Tuple.Map[m.MirroredElemTypes, Lexer]].toList.asInstanceOf[List[Lexer[A]]]
     longest(lexers)
+
+
+sealed trait Recognized extends LexicalElement derives Lexer
+sealed trait Token extends Recognized derives Lexer
+sealed trait InSignificant extends Recognized derives Lexer
+
+sealed trait Malformed extends Recognized derives Lexer
+
+case class UnterminatedStr(content: String) extends Malformed:
+  def sourceText: String = Literal.Str.quote +: content
+
+object UnterminatedStr:
+  import Literal.Str.quote
+  given Lexer[UnterminatedStr] with
+
+      def lex(src: Input): Option[(UnterminatedStr, Lexeme, Remainder)] = src match
+        case `quote` :: tail =>
+          val (value, remainder) = tail.span(_ != quote)
+          remainder match
+            case `quote` :: tail => None
+            case _ => Some((UnterminatedStr(value.mkString), quote :: value, Nil))
+        case _  => None
+
+
+case class Comment(content: String) extends InSignificant:
+  val sourceText: String = Comment.delimiter.mkString ++ this.content
+
+case class UnRecognized(char: Char) extends LexicalElement:
+  val sourceText: String = char.toString
 
 
 object Comment:
@@ -82,25 +121,6 @@ object Recognized:
   object LongestMatch:
     def unapply(src: Input): Option[(LexicalElement, Lexeme, Remainder)] = summon[Lexer[Recognized]].lex(src)
 
-opaque type Spelling = String
-
-object Spelling:
-  def apply
-  // Singleton: S is the literal's own type ("=="), not String.
-  // Only a literal type has a length the compiler can compute.
-  [S <: String & Singleton](s: S)
-  // A proof the compiler must find: Length[S] <= 2 reduces to the type
-  // true or false, and =:= only has an instance when both sides are the
-  // same type. No proof, no compile: Spelling("...") is rejected.
-  // Likewise Spelling("") is rejected: an empty spelling would match
-  // everywhere while consuming nothing, and scanning would never end.
-  (using (Length[S] >= 1) =:= true, (Length[S] <= 2) =:= true): Spelling = s
-
-  extension (l: Spelling)
-    // Not `chars`: where Spelling is transparent, String's own chars() (an IntStream) would win.
-    def characters: List[Char] = l.toList
-    def text: String = l
-
 
 enum Punctuator(val spelling: Spelling) extends Token, FixedSpelling:
   case LeftParen extends Punctuator(Spelling("("))
@@ -127,6 +147,32 @@ enum Punctuator(val spelling: Spelling) extends Token, FixedSpelling:
 object Punctuator:
 
   given Lexer[Punctuator] = longestPrefixMatch(Punctuator.values.toList)
+
+sealed trait Literal extends Token derives Lexer
+
+object Literal:
+
+  case class Str(val value: String) extends Literal:
+    import Str.*
+    def sourceText: String = addQuotes(value)
+
+  object Str:
+
+    private def addQuotes(value: String): String = s"$quote$value$quote"
+    private def addQuotes(value: List[Char]): List[Char] = quote +: value :+ quote
+
+    val quote: Char = '"'
+
+    given Lexer[Literal.Str] with
+      def lex(src: Input): Option[(Str, Lexeme, Remainder)] = src match
+        case Str.quote :: tail =>
+          val (value, remainder) = tail.span(_ != Str.quote)
+          remainder match
+            case Str.quote :: tail => Some((Str(value.mkString), addQuotes(value), tail))
+            case _ => None
+        case _  => None
+
+
 
 def longestPrefixMatch[A <: FixedSpelling](candidates: List[A]): Lexer[A] = (input: Input) =>
   candidates.filter(c => input.startsWith(c.spelling.characters)).maxByOption(_.spelling.characters.size)

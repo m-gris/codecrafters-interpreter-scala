@@ -159,6 +159,27 @@ class ScannerSuite extends munit.FunSuite:
     )
   }
 
+  test("a quoted string becomes one Str holding its value, without the quotes") {
+    val source = Source("\"hi\"")
+    val expected: List[LexicalElement] = List(Literal.Str("hi"))
+    val actual = scan(source)
+    assertEquals(actual, expected, clue(source, expected, actual))
+  }
+
+  test("a string with no closing quote becomes one UnterminatedStr, up to the end of the input") {
+    val source = Source("\"hi")
+    val expected: List[LexicalElement] = List(UnterminatedStr("hi"))
+    val actual = scan(source)
+    assertEquals(actual, expected, clue(source, expected, actual))
+  }
+
+  test("a string with no closing quote is scanned without inventing one") {
+    // Whatever represents an unterminated string, scanning must stay lossless.
+    val source = Source("\"hi")
+    val actual = unscan(scan(source))
+    assertEquals(actual, source, clue(source, source, actual))
+  }
+
   test("every lexer splits its input losslessly, makes progress, and its element matches its lexeme") {
     val samples = List("", "(", "()", "==", "=(", "!=!", "<=>", "/", "//", "// hi\n(", " x", "\t\r\n", "@#")
     for
