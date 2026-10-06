@@ -192,6 +192,11 @@ class ScannerSuite extends munit.FunSuite:
     assertEquals(duplicates, Map.empty[Spelling, List[FixedSpelling]])
   }
 
+  test("a fixed-spelling element's source text is its spelling") {
+    // Guards against storing the source text separately again, where the two could disagree.
+    fixedSpellings.foreach(f => assertEquals(f.sourceText, f.spelling.text, s"$f"))
+  }
+
   test("a long source does not overflow the stack") {
     // Plain recursion overflows the JVM stack at ~10,000 characters.
     val elements = scan(Source("(" * 100_000))
