@@ -187,7 +187,8 @@ class ScannerSuite extends munit.FunSuite:
   }
 
   test("every lexer splits its input losslessly, makes progress, and its element matches its lexeme") {
-    val samples = List("", "(", "()", "==", "=(", "!=!", "<=>", "/", "//", "// hi\n(", " x", "\t\r\n", "@#")
+    val samples = List("", "(", "()", "==", "=(", "!=!", "<=>", "/", "//", "// hi\n(", " x", "\t\r\n", "@#",
+      "\"hi\"(", "\"hi", "\"a\nb\"")
     for
       lexer <- leafLexers
       sample     <- samples
