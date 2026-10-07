@@ -2,7 +2,13 @@ package codecrafters_interpreter
 
 
 private val leafLexers: List[Lexer[Recognized]] =
-  List(summon[Lexer[Comment]], summon[Lexer[Punctuator]], summon[Lexer[WhitespaceChar]])
+  List(
+    summon[Lexer[Comment]],
+    summon[Lexer[Punctuator]],
+    summon[Lexer[WhitespaceChar]],
+    summon[Lexer[Literal.Str]],
+    summon[Lexer[UnterminatedStr]]
+  )
 
 // Every value with a fixed spelling. A new FixedSpelling enum must be added here.
 private val fixedSpellings: List[FixedSpelling] =
