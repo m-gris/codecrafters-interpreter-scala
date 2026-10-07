@@ -14,10 +14,12 @@ private def toSnakeCase(s: String): String = s
 private def name(t: Punctuator): String = toSnakeCase(t.toString)
 
 
-def stdoutLines(xs: List[Located[LexicalElement]]): List[String] = xs.collect {
-  case Located(t: Punctuator, line) => s"${name(t)} ${t.sourceText} $NoLiteral"
-  case Located(s: Literal.Str, line) => s"""STRING ${s.sourceText} ${s.value}"""
-} ::: List("EOF  null")
+private def tokenLine(x: Token): String = x match
+  case t: Punctuator => s"${name(t)} ${t.sourceText} $NoLiteral"
+  case s: Literal.Str => s"""STRING ${s.sourceText} ${s.value}"""
+
+def stdoutLines(xs: List[Located[LexicalElement]]): List[String] =
+  xs.collect { case Located(t: Token, _) => tokenLine(t) } ::: List("EOF  null")
 
 def stderrLines(xs: List[Located[LexicalElement]]): List[String] = xs.collect {
   case Located(u: UnRecognized, line) =>
