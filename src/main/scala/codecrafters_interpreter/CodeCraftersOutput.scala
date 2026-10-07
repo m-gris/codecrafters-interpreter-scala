@@ -16,11 +16,16 @@ private def name(t: Punctuator): String = toSnakeCase(t.toString)
 
 def stdoutLines(xs: List[Located[LexicalElement]]): List[String] = xs.collect {
   case Located(t: Punctuator, line) => s"${name(t)} ${t.sourceText} $NoLiteral"
+  case Located(s: Literal.Str, line) => s"""STRING ${s.sourceText} ${s.value}"""
 } ::: List("EOF  null")
 
 def stderrLines(xs: List[Located[LexicalElement]]): List[String] = xs.collect {
   case Located(u: UnRecognized, line) =>
     s"[line ${line}] Error: Unexpected character: ${u.char}"
+
+  case Located(u: UnterminatedStr, line) =>
+    val extraNewLines: Int = u.sourceText.filter(_ == WhitespaceChar.NewLine.char).size
+    s"[line ${line+extraNewLines}] Error: Unterminated string."
 }
 
 

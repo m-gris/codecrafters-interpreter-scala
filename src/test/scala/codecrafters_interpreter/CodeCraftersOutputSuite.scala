@@ -2,6 +2,13 @@ package codecrafters_interpreter
 
 class CodeCraftersOutputSuite extends munit.FunSuite:
 
+  // Printed by munit in place of "values are not the same", so a failure shows its input elements.
+  private def clue[A](elements: List[Located[LexicalElement]], expected: A, actual: A): String =
+    s"""
+       |  elements = $elements
+       |  expected = $expected
+       |  obtained = $actual""".stripMargin
+
   test("stdout: an empty source still prints EOF") {
     assertEquals(stdoutLines(Nil), List("EOF  null"))
   }
@@ -66,6 +73,31 @@ class CodeCraftersOutputSuite extends munit.FunSuite:
         "[line 3] Error: Unexpected character: #"
       )
     )
+  }
+
+  test("stdout: a string literal prints STRING, its source text with quotes, then its value") {
+    val elements = List(Located(Literal.Str("foo baz"), 1))
+    val expected = List("STRING \"foo baz\" foo baz", "EOF  null")
+    val actual = stdoutLines(elements)
+    assertEquals(actual, expected, clue(elements, expected, actual))
+  }
+
+  test("stdout and stderr: an unterminated string prints only an error, with its line number") {
+    val elements = List(Located(UnterminatedStr("bar"), 1))
+    val expectedOut = List("EOF  null")
+    val actualOut = stdoutLines(elements)
+    assertEquals(actualOut, expectedOut, clue(elements, expectedOut, actualOut))
+    val expectedErr = List("[line 1] Error: Unterminated string.")
+    val actualErr = stderrLines(elements)
+    assertEquals(actualErr, expectedErr, clue(elements, expectedErr, actualErr))
+  }
+
+  test("stderr: an unterminated string is reported on the line where the input ends") {
+    // jlox counts the newlines inside the string while reading it, then reports the error at the end.
+    val elements = List(Located(UnterminatedStr("a\nb\nc"), 1))
+    val expected = List("[line 3] Error: Unterminated string.")
+    val actual = stderrLines(elements)
+    assertEquals(actual, expected, clue(elements, expected, actual))
   }
 
   test("stdout: many tokens do not overflow the stack") {
