@@ -34,7 +34,6 @@ case class Located[+A](element: A, lineNumber: Int)
 def locate(elements: List[LexicalElement]): List[Located[LexicalElement]] =
 
   elements.foldLeft( ( 1, List.empty[(LexicalElement, Int)] ) ) {
-    case ( (count, acc)  , (elmt @ WhitespaceChar.NewLine)) => (count + 1, (elmt, count) :: acc )
-    case ( (count, acc), elmt ) => (count, (elmt, count) :: acc)
+    case ( (count, acc), elmt ) => (count + elmt.sourceText.count(_ == WhitespaceChar.NewLine.char), (elmt, count) :: acc)
   }._2.map((element, loc) => Located(element, loc)).reverse
 

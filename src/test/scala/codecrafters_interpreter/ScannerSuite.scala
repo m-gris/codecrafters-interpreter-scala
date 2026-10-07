@@ -243,7 +243,9 @@ class ScannerProperties extends munit.ScalaCheckSuite:
 
   // Built from fragments, not just characters: drawn character by character, "//" is rare, so
   // comments would almost never be generated and the comment properties would pass vacuously.
-  private val fragments: List[String] = alphabet.map(_.toString) :+ Comment.delimiter.mkString
+  // The quote is not in the alphabet (no fixed spelling contains it), so it is added here.
+  private val fragments: List[String] =
+    alphabet.map(_.toString) :+ Comment.delimiter.mkString :+ Quoted.quote.toString
   private val sources: Gen[String] = Gen.listOf(Gen.oneOf(fragments)).map(_.mkString)
 
   property("round trip: the scanned elements' source texts rebuild the source exactly") {
@@ -263,13 +265,19 @@ class ScannerProperties extends munit.ScalaCheckSuite:
     }
   }
 
-  // Sources that start at a line boundary: every variable-length element (today, only Comment)
-  // stops at its terminator, and no fixed spelling contains it, so nothing can cross the boundary.
+  // Sources that start at a line boundary. A comment stops at its terminator, and no fixed spelling
+  // contains it, so neither can cross the boundary. A string can: its content may contain newlines.
   private val sourcesAfterNewline: Gen[String] = sources.map(s => Comment.terminator.char +: s)
 
+  // Sources that do not end inside an open string, so a newline after them is outside any string.
+  // The condition uses scan itself: it only filters inputs, so the property can still fail.
+  private val sourcesEndingOutsideString: Gen[String] =
+    sources.suchThat(a => !scan(Source(a)).exists { case _: UnterminatedStr => true; case _ => false })
+
   // Without the newline this is false: "=" ++ "=" scans as EqualEqual, and "// hi" ++ "(" as one comment.
-  property("induction: when b starts with a newline, scanning a ++ b equals scanning a, then b") {
-    forAll(sources, sourcesAfterNewline) { (a, b) =>
+  // Without the condition on a, it is false too: "\"x" ++ "\n==" scans as one unterminated string.
+  property("induction: when a ends outside a string and b starts with a newline, scanning a ++ b equals scanning a, then b") {
+    forAll(sourcesEndingOutsideString, sourcesAfterNewline) { (a, b) =>
       assertEquals(scan(Source(a ++ b)), scan(Source(a)) ++ scan(Source(b)))
     }
   }
