@@ -56,22 +56,44 @@ sealed trait Recognized extends LexicalElement derives Lexer
 sealed trait Token extends Recognized derives Lexer
 sealed trait InSignificant extends Recognized derives Lexer
 
+// A second classification, beside Token and Malformed: elements read by the string rule
+// (a quote, then text up to the next quote or the end of the input). Not a child of
+// Recognized: Literal and Malformed derive their lexers from their own children, so each
+// string form also has a given that narrows Quoted.lexer to that form.
+sealed trait Quoted
+
+object Quoted:
+
+  val quote: Char = '"'
+
+  def addQuotes(value: String): String = s"$quote$value$quote"
+  def addQuotes(value: List[Char]): List[Char] = quote +: value :+ quote
+
+  given lexer: Lexer[Quoted] with
+
+    def lex(src: Input): Option[(Quoted, Lexeme, Remainder)] = src match
+      case `quote` :: afterOpeningQuote =>
+        val (content, fromClosingQuote) = afterOpeningQuote.span(_ != quote)
+        fromClosingQuote match
+          case `quote` :: afterClosingQuote => Some((Literal.Str(content.mkString), addQuotes(content), afterClosingQuote))
+          case _                     => Some((UnterminatedStr(content.mkString), quote :: content, Nil))
+      case _ => None
+
+
+
 sealed trait Malformed extends Recognized derives Lexer
 
-case class UnterminatedStr(content: String) extends Malformed:
-  def sourceText: String = Literal.Str.quote +: content
+case class UnterminatedStr(content: String) extends Malformed with Quoted:
+  def sourceText: String = Quoted.quote +: content
+
 
 object UnterminatedStr:
-  import Literal.Str.quote
+
   given Lexer[UnterminatedStr] with
 
-      def lex(src: Input): Option[(UnterminatedStr, Lexeme, Remainder)] = src match
-        case `quote` :: tail =>
-          val (value, remainder) = tail.span(_ != quote)
-          remainder match
-            case `quote` :: tail => None
-            case _ => Some((UnterminatedStr(value.mkString), quote :: value, Nil))
-        case _  => None
+      def lex(src: Input): Option[(UnterminatedStr, Lexeme, Remainder)] = Quoted.lexer.lex(src).collect {
+        case (u: UnterminatedStr, lexeme, remainder) => (u, lexeme, remainder)
+      }
 
 
 case class Comment(content: String) extends InSignificant:
@@ -152,25 +174,16 @@ sealed trait Literal extends Token derives Lexer
 
 object Literal:
 
-  case class Str(val value: String) extends Literal:
-    import Str.*
-    def sourceText: String = addQuotes(value)
+  case class Str(val value: String) extends Literal with Quoted:
+    def sourceText: String = Quoted.addQuotes(value)
 
   object Str:
 
-    private def addQuotes(value: String): String = s"$quote$value$quote"
-    private def addQuotes(value: List[Char]): List[Char] = quote +: value :+ quote
-
-    val quote: Char = '"'
-
     given Lexer[Literal.Str] with
-      def lex(src: Input): Option[(Str, Lexeme, Remainder)] = src match
-        case Str.quote :: tail =>
-          val (value, remainder) = tail.span(_ != Str.quote)
-          remainder match
-            case Str.quote :: tail => Some((Str(value.mkString), addQuotes(value), tail))
-            case _ => None
-        case _  => None
+      def lex(src: Input): Option[(Str, Lexeme, Remainder)] = Quoted.lexer.lex(src).collect {
+          case (s: Str, lexeme, remainder) => (s, lexeme, remainder)
+      }
+
 
 
 
