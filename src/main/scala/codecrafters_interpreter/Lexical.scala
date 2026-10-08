@@ -102,6 +102,10 @@ case class Comment(content: String) extends InSignificant:
 case class UnRecognized(char: Char) extends LexicalElement:
   val sourceText: String = char.toString
 
+// The elements that are errors: input no lexer recognised, and input a lexer recognised as broken.
+// They have no common parent, so the union names them; a match on it is still checked for completeness.
+type LexicalError = UnRecognized | Malformed
+
 
 object Comment:
 

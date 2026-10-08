@@ -21,13 +21,19 @@ private def tokenLine(x: Token): String = x match
 def stdoutLines(xs: List[Located[LexicalElement]]): List[String] =
   xs.collect { case Located(t: Token, _) => tokenLine(t) } ::: List("EOF  null")
 
-def stderrLines(xs: List[Located[LexicalElement]]): List[String] = xs.collect {
-  case Located(u: UnRecognized, line) =>
+private def errorLine(e: LexicalError, line: Int): String = e match {
+
+  case u: UnRecognized =>
     s"[line ${line}] Error: Unexpected character: ${u.char}"
 
-  case Located(u: UnterminatedStr, line) =>
+  case u: UnterminatedStr =>
     val extraNewLines: Int = u.sourceText.filter(_ == WhitespaceChar.NewLine.char).size
     s"[line ${line+extraNewLines}] Error: Unterminated string."
+
+}
+
+def stderrLines(xs: List[Located[LexicalElement]]): List[String] = xs.collect {
+  case Located(e: LexicalError, line) => errorLine(e, line)
 }
 
 
