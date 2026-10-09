@@ -178,6 +178,30 @@ sealed trait Literal extends Token derives Lexer
 
 object Literal:
 
+  // Holds its source text, and derives the value from it: "1.50" and "1.5" have the same value,
+  // so the text cannot be rebuilt from the value.
+  case class Num(sourceText: String) extends Literal:
+    // A val, so that a Num whose text is not a number fails when it is created.
+    val value: Double = sourceText.toDouble
+
+  object Num:
+    given Lexer[Num] with
+      def lex(src: Input): Option[(Num, Lexeme, Remainder)] =
+        src.span(_.isDigit) match
+          case (Nil, _) => None
+          case (integers, tail) if !tail.startsWith(".") => Some(Num(integers.mkString), integers, tail)
+          case (integers, tail) if  tail.startsWith(".") => tail match
+            case '.' :: Nil => Some(Num(integers.mkString), integers, tail)
+            case '.' :: newTail => newTail.span(_.isDigit) match
+              case (Nil, _) => Some(Num(integers.mkString), integers, tail)
+              case (fractions, remainder) =>
+                Some(Num(s"${integers.mkString}.${fractions.mkString}"), s"${integers.mkString}.${fractions.mkString}".toList, remainder)
+            case _ => None
+          case _ => None
+
+
+
+
   case class Str(val value: String) extends Literal with Quoted:
     def sourceText: String = Quoted.addQuotes(value)
 

@@ -7,7 +7,8 @@ private val leafLexers: List[Lexer[Recognized]] =
     summon[Lexer[Punctuator]],
     summon[Lexer[WhitespaceChar]],
     summon[Lexer[Literal.Str]],
-    summon[Lexer[UnterminatedStr]]
+    summon[Lexer[UnterminatedStr]],
+    summon[Lexer[Literal.Num]]
   )
 
 // Every value with a fixed spelling. A new FixedSpelling enum must be added here.
@@ -186,9 +187,58 @@ class ScannerSuite extends munit.FunSuite:
     assertEquals(actual, source, clue(source, source, actual))
   }
 
+  test("number, step 1: a single digit becomes one Num holding its source text") {
+    val source = Source("7")
+    val expected: List[LexicalElement] = List(Literal.Num("7"))
+    val actual = scan(source)
+    assertEquals(actual, expected, clue(source, expected, actual))
+  }
+
+  test("number, step 2: several digits become one Num, not one Num per digit") {
+    val source = Source("42")
+    val expected: List[LexicalElement] = List(Literal.Num("42"))
+    val actual = scan(source)
+    assertEquals(actual, expected, clue(source, expected, actual))
+  }
+
+  test("number, step 3: digits, a dot, then digits become one Num") {
+    for text <- List("1234.1234", "65.0000") do
+      val source = Source(text)
+      val expected: List[LexicalElement] = List(Literal.Num(text))
+      val actual = scan(source)
+      assertEquals(actual, expected, clue(source, expected, actual))
+  }
+
+  test("number, step 4: a dot with no digit after it is not part of the number") {
+    val source = Source("1.")
+    val expected: List[LexicalElement] = List(Literal.Num("1"), Punctuator.Dot)
+    val actual = scan(source)
+    assertEquals(actual, expected, clue(source, expected, actual))
+  }
+
+  test("number, step 5: a number never starts with a dot") {
+    val source = Source(".5")
+    val expected: List[LexicalElement] = List(Punctuator.Dot, Literal.Num("5"))
+    val actual = scan(source)
+    assertEquals(actual, expected, clue(source, expected, actual))
+  }
+
+  test("number, step 6: a number has at most one fraction; further dots and digits are separate tokens") {
+    // Not a lexical error: the scanner only cuts the text. Rejecting such sequences is the parser's job.
+    val cases: List[(String, List[LexicalElement])] = List(
+      "123.456.789" -> List(Literal.Num("123.456"), Punctuator.Dot, Literal.Num("789")),
+      "1..2" -> List(Literal.Num("1"), Punctuator.Dot, Punctuator.Dot, Literal.Num("2"))
+    )
+    for (text, expected) <- cases do
+      val source = Source(text)
+      val actual = scan(source)
+      assertEquals(actual, expected, clue(source, expected, actual))
+  }
+
   test("every lexer splits its input losslessly, makes progress, and its element matches its lexeme") {
     val samples = List("", "(", "()", "==", "=(", "!=!", "<=>", "/", "//", "// hi\n(", " x", "\t\r\n", "@#",
-      "\"hi\"(", "\"hi", "\"a\nb\"")
+      "\"hi\"(", "\"hi", "\"a\nb\"",
+      "7", "42+", "12.5", "1.", "1.2.3")
     for
       lexer <- leafLexers
       sample     <- samples

@@ -100,6 +100,22 @@ class CodeCraftersOutputSuite extends munit.FunSuite:
     assertEquals(actual, expected, clue(elements, expected, actual))
   }
 
+  test("stdout: a number prints NUMBER, its source text, then its value with at least one decimal") {
+    // The value's format is the tester's: 6 decimals at most, trailing zeros removed, at least
+    // one decimal, never scientific notation.
+    val cases = List(
+      "42" -> "NUMBER 42 42.0",
+      "1234.1234" -> "NUMBER 1234.1234 1234.1234",
+      "65.0000" -> "NUMBER 65.0000 65.0",
+      "100000000000000000000" -> "NUMBER 100000000000000000000 100000000000000000000.0"
+    )
+    for (text, line) <- cases do
+      val elements = List(Located(Literal.Num(text), 1))
+      val expected = List(line, "EOF  null")
+      val actual = stdoutLines(elements)
+      assertEquals(actual, expected, clue(elements, expected, actual))
+  }
+
   test("stdout: many tokens do not overflow the stack") {
     // Plain recursion overflows the JVM stack at ~10,000 tokens.
     val lines = stdoutLines(List.fill(100_000)(Located(Punctuator.LeftParen, 1)))
