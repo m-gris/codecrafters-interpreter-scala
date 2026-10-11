@@ -235,6 +235,45 @@ class ScannerSuite extends munit.FunSuite:
       assertEquals(actual, expected, clue(source, expected, actual))
   }
 
+  // What is expected of Literal.Num.fraction, as (input, the fraction's characters, the remainder).
+  private def checkFraction(cases: List[(String, String, String)]): Unit =
+    for (input, fractionChars, remainder) <- cases do
+      val expected = (fractionChars.toList, remainder.toList)
+      val actual = Literal.Num.fraction(input.toList)
+      assertEquals(actual, expected, clue(Source(input), expected, actual))
+
+  test("fraction, step 1: a dot followed by digits is a fraction, up to the first non-digit") {
+    checkFraction(List(
+      (".5", ".5", ""),
+      (".5+", ".5", "+"),
+      (".1234", ".1234", ""),
+      (".0000)", ".0000", ")")
+    ))
+  }
+
+  test("fraction, step 2: without a dot there is no fraction, and the input is left untouched") {
+    checkFraction(List(
+      ("", "", ""),
+      ("+", "", "+"),
+      ("5", "", "5")
+    ))
+  }
+
+  test("fraction, step 3: a dot with no digit right after it is not a fraction") {
+    checkFraction(List(
+      (".", "", "."),
+      (".+", "", ".+"),
+      ("..5", "", "..5")
+    ))
+  }
+
+  test("fraction, step 4: a fraction ends at a second dot") {
+    checkFraction(List(
+      (".5.6", ".5", ".6"),
+      (".456.789", ".456", ".789")
+    ))
+  }
+
   test("every lexer splits its input losslessly, makes progress, and its element matches its lexeme") {
     val samples = List("", "(", "()", "==", "=(", "!=!", "<=>", "/", "//", "// hi\n(", " x", "\t\r\n", "@#",
       "\"hi\"(", "\"hi", "\"a\nb\"",

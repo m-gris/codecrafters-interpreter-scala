@@ -189,19 +189,27 @@ object Literal:
     val value: Double = sourceText.toDouble
 
   object Num:
+
+    // Lox's digits are exactly '0' to '9'. Not Char.isDigit: that accepts the digits of every
+    // writing system (e.g. '٤', Arabic-Indic four), which toDouble then rejects, so a Num built
+    // from one would throw instead of the character being reported as unexpected.
+    def isDigit(c: Char): Boolean = ('0' to '9').contains(c)
+
+    // The fraction at the front of the input: a dot and the digits after it, or nothing.
+    def fraction(afterInteger: Input): (List[Char], Remainder) = afterInteger match
+      case '.' :: afterDot =>
+        val (fractionDigits, remainder) = afterDot.span(isDigit)
+        if fractionDigits.isEmpty then (Nil, afterInteger)
+        else ('.' :: fractionDigits, remainder)
+      case _           => (Nil, afterInteger)
+
     given Lexer[Num] with
       def lex(src: Input): Option[LexerMatch[Num]] =
-        src.span(_.isDigit) match
-          case (Nil, _) => None
-          case (integers, tail) if !tail.startsWith(".") => Some(LexerMatch(Num(integers.mkString), integers, tail))
-          case (integers, tail) if  tail.startsWith(".") => tail match
-            case '.' :: Nil => Some(LexerMatch(Num(integers.mkString), integers, tail))
-            case '.' :: newTail => newTail.span(_.isDigit) match
-              case (Nil, _) => Some(LexerMatch(Num(integers.mkString), integers, tail))
-              case (fractions, remainder) =>
-                Some(LexerMatch(Num(s"${integers.mkString}.${fractions.mkString}"), s"${integers.mkString}.${fractions.mkString}".toList, remainder))
-            case _ => None
-          case _ => None
+        val (integerDigits, afterInteger) = src.span(isDigit)          // step 1: DIGIT+
+        val (fractionChars, remainder)    = fraction(afterInteger)     // step 2: ( "." DIGIT+ )?
+        val lexeme                        = integerDigits ++ fractionChars
+        if integerDigits.isEmpty then None                             // no digit: not a number
+        else Some(LexerMatch(Num(lexeme.mkString), lexeme, remainder))
 
 
 
