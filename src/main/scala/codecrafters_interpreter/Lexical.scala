@@ -38,10 +38,14 @@ type Input = List[Char]
 type Lexeme = List[Char]
 type Remainder = List[Char]
 
-// A Lexer[A] is a function Input => Option[(A, Lexeme, Remainder)]: the A it recognised, its lexeme (the characters it consumed), what's left.
+// One successful step of a lexer, at the front of the input: the element it recognised, its lexeme
+// (the characters it consumed), and what's left. The lexeme followed by the remainder is the input.
+case class LexerMatch[+A](element: A, lexeme: Lexeme, remainder: Remainder)
+
+// A Lexer[A] is a function Input => Option[LexerMatch[A]]: a match at the front of the input, or None.
 // Kept as a trait with a named method rather than extending Function1, whose andThen/compose would read as lexer combinators.
 trait Lexer[+A]:
-  def lex(src: Input): Option[(A, Lexeme, Remainder)]
+  def lex(src: Input): Option[LexerMatch[A]]
 
 object Lexer:
   // Called by `derives Lexer`: a sealed type's lexer is the longest match among its children's lexers.
@@ -71,12 +75,12 @@ object Quoted:
 
   given lexer: Lexer[Quoted] with
 
-    def lex(src: Input): Option[(Quoted, Lexeme, Remainder)] = src match
+    def lex(src: Input): Option[LexerMatch[Quoted]] = src match
       case `quote` :: afterOpeningQuote =>
         val (content, fromClosingQuote) = afterOpeningQuote.span(_ != quote)
         fromClosingQuote match
-          case `quote` :: afterClosingQuote => Some((Literal.Str(content.mkString), addQuotes(content), afterClosingQuote))
-          case _                     => Some((UnterminatedStr(content.mkString), quote :: content, Nil))
+          case `quote` :: afterClosingQuote => Some(LexerMatch(Literal.Str(content.mkString), addQuotes(content), afterClosingQuote))
+          case _                            => Some(LexerMatch(UnterminatedStr(content.mkString), quote :: content, Nil))
       case _ => None
 
 
@@ -91,8 +95,8 @@ object UnterminatedStr:
 
   given Lexer[UnterminatedStr] with
 
-      def lex(src: Input): Option[(UnterminatedStr, Lexeme, Remainder)] = Quoted.lexer.lex(src).collect {
-        case (u: UnterminatedStr, lexeme, remainder) => (u, lexeme, remainder)
+      def lex(src: Input): Option[LexerMatch[UnterminatedStr]] = Quoted.lexer.lex(src).collect {
+        case LexerMatch(u: UnterminatedStr, lexeme, remainder) => LexerMatch(u, lexeme, remainder)
       }
 
 
@@ -114,11 +118,11 @@ object Comment:
 
   given Lexer[Comment] with
 
-    def lex(src: Input): Option[(Comment, Lexeme, Remainder)] =
+    def lex(src: Input): Option[LexerMatch[Comment]] =
       if src.startsWith(delimiter) then
         val rest = src.drop(delimiter.size)
         val (content, restExComment) = rest.span(_ != terminator.char)
-        Some((Comment(content.mkString), delimiter ::: content, restExComment))
+        Some(LexerMatch(Comment(content.mkString), delimiter ::: content, restExComment))
       else None
 
 
@@ -139,13 +143,13 @@ object WhitespaceChar:
 def longest[A](lexers: List[Lexer[A]]): Lexer[A] =
   (src: Input) => lexers
                     .flatMap(recog => recog.lex(src))
-                    .maxByOption(_._2.size)
+                    .maxByOption(_.lexeme.size)
 
 
 object Recognized:
 
   object LongestMatch:
-    def unapply(src: Input): Option[(LexicalElement, Lexeme, Remainder)] = summon[Lexer[Recognized]].lex(src)
+    def unapply(src: Input): Option[LexerMatch[Recognized]] = summon[Lexer[Recognized]].lex(src)
 
 
 enum Punctuator(val spelling: Spelling) extends Token, FixedSpelling:
@@ -186,16 +190,16 @@ object Literal:
 
   object Num:
     given Lexer[Num] with
-      def lex(src: Input): Option[(Num, Lexeme, Remainder)] =
+      def lex(src: Input): Option[LexerMatch[Num]] =
         src.span(_.isDigit) match
           case (Nil, _) => None
-          case (integers, tail) if !tail.startsWith(".") => Some(Num(integers.mkString), integers, tail)
+          case (integers, tail) if !tail.startsWith(".") => Some(LexerMatch(Num(integers.mkString), integers, tail))
           case (integers, tail) if  tail.startsWith(".") => tail match
-            case '.' :: Nil => Some(Num(integers.mkString), integers, tail)
+            case '.' :: Nil => Some(LexerMatch(Num(integers.mkString), integers, tail))
             case '.' :: newTail => newTail.span(_.isDigit) match
-              case (Nil, _) => Some(Num(integers.mkString), integers, tail)
+              case (Nil, _) => Some(LexerMatch(Num(integers.mkString), integers, tail))
               case (fractions, remainder) =>
-                Some(Num(s"${integers.mkString}.${fractions.mkString}"), s"${integers.mkString}.${fractions.mkString}".toList, remainder)
+                Some(LexerMatch(Num(s"${integers.mkString}.${fractions.mkString}"), s"${integers.mkString}.${fractions.mkString}".toList, remainder))
             case _ => None
           case _ => None
 
@@ -208,8 +212,8 @@ object Literal:
   object Str:
 
     given Lexer[Literal.Str] with
-      def lex(src: Input): Option[(Str, Lexeme, Remainder)] = Quoted.lexer.lex(src).collect {
-          case (s: Str, lexeme, remainder) => (s, lexeme, remainder)
+      def lex(src: Input): Option[LexerMatch[Str]] = Quoted.lexer.lex(src).collect {
+          case LexerMatch(s: Str, lexeme, remainder) => LexerMatch(s, lexeme, remainder)
       }
 
 
@@ -217,4 +221,4 @@ object Literal:
 
 def longestPrefixMatch[A <: FixedSpelling](candidates: List[A]): Lexer[A] = (input: Input) =>
   candidates.filter(c => input.startsWith(c.spelling.characters)).maxByOption(_.spelling.characters.size)
-    .map(winner => (winner,winner.spelling.characters,input.drop(winner.spelling.characters.size)))
+    .map(winner => LexerMatch(winner, winner.spelling.characters, input.drop(winner.spelling.characters.size)))

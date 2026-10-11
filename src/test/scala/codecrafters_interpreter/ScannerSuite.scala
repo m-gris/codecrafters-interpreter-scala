@@ -243,7 +243,7 @@ class ScannerSuite extends munit.FunSuite:
       lexer <- leafLexers
       sample     <- samples
       src         = sample.toList
-      (element, lexeme, rest) <- lexer.lex(src)
+      LexerMatch(element, lexeme, rest) <- lexer.lex(src)
     do
       assertEquals(lexeme ++ rest, src, s"lossless split failed on \"$sample\"")
       assert(lexeme.nonEmpty, s"no progress on \"$sample\"")
