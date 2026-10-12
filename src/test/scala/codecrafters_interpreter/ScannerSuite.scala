@@ -334,8 +334,10 @@ class ScannerProperties extends munit.ScalaCheckSuite:
   // Built from fragments, not just characters: drawn character by character, "//" is rare, so
   // comments would almost never be generated and the comment properties would pass vacuously.
   // The quote is not in the alphabet (no fixed spelling contains it), so it is added here.
+  // Digits are not in the alphabet either. The dot is (it is a punctuator), so numbers with a
+  // fraction, and sequences such as "1..2", are generated too.
   private val fragments: List[String] =
-    alphabet.map(_.toString) :+ Comment.delimiter.mkString :+ Quoted.quote.toString
+    alphabet.map(_.toString) ++ ('0' to '9').map(_.toString) :+ Comment.delimiter.mkString :+ Quoted.quote.toString
   private val sources: Gen[String] = Gen.listOf(Gen.oneOf(fragments)).map(_.mkString)
 
   property("round trip: the scanned elements' source texts rebuild the source exactly") {
@@ -410,6 +412,28 @@ class ScannerProperties extends munit.ScalaCheckSuite:
     forAll(sources) { text =>
       neighbours(scan(Source(text))).collect { case (c: Comment, next) => (c, next) }.foreach { (c, next) =>
         assertEquals(next, Comment.terminator, s"$c is followed by $next")
+      }
+    }
+  }
+
+  // If two Nums stood side by side, the lexer would have cut one run of digits in two.
+  property("invariant: two numbers never stand side by side") {
+    forAll(sources) { text =>
+      neighbours(scan(Source(text))).foreach {
+        case (a: Literal.Num, b: Literal.Num) => fail(s"$a is followed by $b")
+        case _                                => ()
+      }
+    }
+  }
+
+  // A Num with no fraction, a Dot, then a Num: the lexer missed a fraction ("1.5" cut in three).
+  // With a fraction it is legitimate: "1.5.6" is Num(1.5), Dot, Num(6).
+  property("invariant: a number without a fraction is never followed by a dot and a number") {
+    forAll(sources) { text =>
+      scan(Source(text)).sliding(3).foreach {
+        case List(a: Literal.Num, Punctuator.Dot, b: Literal.Num) =>
+          assert(a.sourceText.contains('.'), s"$a, Dot, $b should have been one number")
+        case _ => ()
       }
     }
   }
