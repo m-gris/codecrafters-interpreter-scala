@@ -225,6 +225,19 @@ object Literal:
       }
 
 
+case class Identifier(foo: String) extends Token derives Lexer
+
+object Identifier:
+
+    given Lexer[Identifier] with
+      def lex(src: Input): Option[LexerMatch[Identifier]] = ???
+
+
+
+
+
+
+
 
 
 def longestPrefixMatch[A <: FixedSpelling](candidates: List[A]): Lexer[A] = (input: Input) =>
